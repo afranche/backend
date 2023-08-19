@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "backend"
+version = "0.1.0"
+description = ""
+authors = ["Anouar Aissaoui <anouar.aissaoui@pm.me>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+django = "^4.2.4"
+environs = {extras = ["django"], version = "^9.5.0"}
+djangorestframework = "^3.14.0"
+json-log-formatter = "^0.5.2"
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.7.0"
+isort = "^5.12.0"
+bandit = "^1.7.5"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
