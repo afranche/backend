@@ -1,5 +1,10 @@
+from typing import Collection
+
 # TODO: Add type-stubs afterwards for pycountry
 import pycountry  # type: ignore
+from django.contrib.auth.base_user import BaseUserManager
+from django.contrib.auth.models import PermissionsMixin
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext as _
 
@@ -42,3 +47,38 @@ class Address(models.Model):
     country = models.CharField(  # type: ignore
         _("Country"), max_length=3, choices=COUNTRY_CHOICES  # type: ignore
     )
+
+
+class Client(PermissionsMixin):
+    """
+    We keep a specific class to pair e-mails to a specific client. This way
+    we can refer to the user through the `request.user` variable and prevent
+    having him logging in using a password, etc..
+    """
+
+    USERNAME_FIELD = "email"
+
+    email = models.EmailField(
+        _("email address"),
+    )
+    address = models.ForeignKey(
+        Address, on_delete=models.SET_NULL, blank=True, null=True
+    )
+
+    is_active = True
+
+    objects = BaseUserManager
+
+    def __str__(self):
+        return self.get_username()
+
+    def get_username(self):
+        """Return the username for this User."""
+
+        return getattr(self, self.USERNAME_FIELD)
+
+    def clean_fields(self, exclude: Collection[str] | None = ...) -> None:
+        if self.is_superuser:
+            raise ValidationError("Client are not allowed to be super-users.")
+
+        return super().clean_fields(exclude)
