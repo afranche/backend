@@ -11,7 +11,6 @@ django = "^4.2.4"
 environs = {extras = ["django"], version = "^9.5.0"}
 djangorestframework = "^3.14.0"
 json-log-formatter = "^0.5.2"
-pycountry = "^22.3.5"
 
 
 [tool.poetry.group.dev.dependencies]
