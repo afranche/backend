@@ -3,7 +3,7 @@ from typing import Collection
 # TODO: Add type-stubs afterwards for pycountry
 import pycountry  # type: ignore
 from django.contrib.auth.base_user import BaseUserManager
-from django.contrib.auth.models import PermissionsMixin
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext as _
@@ -49,7 +49,7 @@ class Address(models.Model):
     )
 
 
-class Client(PermissionsMixin):
+class Client(PermissionsMixin, AbstractBaseUser):
     """
     We keep a specific class to pair e-mails to a specific client. This way
     we can refer to the user through the `request.user` variable and prevent
@@ -58,9 +58,8 @@ class Client(PermissionsMixin):
 
     USERNAME_FIELD = "email"
 
-    email = models.EmailField(
-        _("email address"),
-    )
+    email = models.EmailField(_("email address"), primary_key=True)
+    password = models.CharField(_("password"), max_length=128, blank=True, null=True)
     address = models.ForeignKey(
         Address, on_delete=models.SET_NULL, blank=True, null=True
     )
@@ -68,14 +67,6 @@ class Client(PermissionsMixin):
     is_active = True
 
     objects = BaseUserManager
-
-    def __str__(self):
-        return self.get_username()
-
-    def get_username(self):
-        """Return the username for this User."""
-
-        return getattr(self, self.USERNAME_FIELD)
 
     def clean_fields(self, exclude: Collection[str] | None = ...) -> None:
         if self.is_superuser:
