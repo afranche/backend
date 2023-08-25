@@ -45,6 +45,7 @@ DJANGO_APPS = [
 
 INSTALLED_APPS = DJANGO_APPS + [
     "rest_framework",
+    "knox",
     "apps.listings.Config",
     "apps.orders.Config",
     "apps.users.Config",
@@ -124,14 +125,21 @@ DATABASES = {
     }
 }
 
-REST_FRAMEWORK = {"DEFAULT_PERMISSION_CLASSES": ["services.security.permissions.Deny"]}
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": ("knox.auth.TokenAuthentication",),
+    "DEFAULT_PERMISSION_CLASSES": ("services.security.permissions.Deny",),
+}
+
+REST_KNOX = {
+    "USER_SERIALIZER": "apps.users.serializers.ClientSerializer",
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
 AUTH_USER_MODEL = "apps.users.Client"
 
-AUTH_PASSWORD_VALIDATORS = [
+AUTH_PASSWORD_VALIDATORS = (
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
@@ -144,7 +152,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
-]
+)
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
