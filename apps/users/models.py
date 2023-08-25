@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import datetime
 from typing import Collection
 
 # TODO: Add type-stubs afterwards for pycountry
@@ -5,6 +8,7 @@ import pycountry  # type: ignore
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.core.exceptions import ValidationError
+from django.core.management.utils import get_random_secret_key
 from django.db import models
 from django.utils.translation import gettext as _
 
@@ -49,6 +53,10 @@ class Address(models.Model):
     )
 
 
+class ClientManager(BaseUserManager["Client"]):
+    pass
+
+
 class Client(PermissionsMixin, AbstractBaseUser):
     """
     We keep a specific class to pair e-mails to a specific client. This way
@@ -66,10 +74,36 @@ class Client(PermissionsMixin, AbstractBaseUser):
 
     is_active = True
 
-    objects = BaseUserManager
+    objects = ClientManager
 
     def clean_fields(self, exclude: Collection[str] | None = ...) -> None:
         if self.is_superuser:
             raise ValidationError("Client are not allowed to be super-users.")
 
         return super().clean_fields(exclude)
+
+
+class MagicLinkQuerySet(models.QuerySet["MagicLink"]):
+    def from_valid(self) -> MagicLinkQuerySet:
+        return self.filter(expires_at__gt=datetime.datetime.now())
+
+    def from_expired(self):
+        return self.filter(expires_at__lte=datetime.datetime.now())
+
+
+class MagicLink(models.Model):
+    """ """
+
+    @staticmethod
+    def _get_expiration_date():
+        return datetime.datetime.now() + datetime.timedelta(minutes=30)
+
+    client = models.ForeignKey(
+        Client, on_delete=models.CASCADE, verbose_name=_("client")
+    )
+    secret = models.CharField(
+        _("Secret"), default=get_random_secret_key, auto_created=True, max_length=50
+    )
+    expires_at = models.DateTimeField()
+
+    objects = MagicLinkQuerySet.as_manager()
