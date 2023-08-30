@@ -137,7 +137,7 @@ REST_KNOX = {
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
-AUTH_USER_MODEL = "apps.users.Client"
+AUTH_USER_MODEL = "users.Client"
 
 AUTH_PASSWORD_VALIDATORS = (
     {
