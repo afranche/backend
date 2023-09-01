@@ -76,12 +76,6 @@ class Client(PermissionsMixin, AbstractBaseUser):
 
     objects = ClientManager
 
-    def clean_fields(self, exclude: Collection[str] | None = ...) -> None:
-        if self.is_superuser:
-            raise ValidationError("Client are not allowed to be super-users.")
-
-        return super().clean_fields(exclude)
-
 
 class MagicLinkQuerySet(models.QuerySet["MagicLink"]):
     def from_valid(self) -> MagicLinkQuerySet:
@@ -104,6 +98,6 @@ class MagicLink(models.Model):
     secret = models.CharField(
         _("Secret"), default=get_random_secret_key, auto_created=True, max_length=50
     )
-    expires_at = models.DateTimeField()
+    expires_at = models.DateTimeField(default=_get_expiration_date)
 
     objects = MagicLinkQuerySet.as_manager()
