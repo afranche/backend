@@ -128,8 +128,8 @@ DATABASES = {
 }
 
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": ("knox.auth.TokenAuthentication",),
-    "DEFAULT_PERMISSION_CLASSES": ("services.security.permissions.Deny",),
+    "DEFAULT_AUTHENTICATION_CLASSES": ("apps.users.auth.CookieTokenAuthentication",),
+    # "DEFAULT_PERMISSION_CLASSES": ("services.security.permissions.Deny",),
 }
 
 REST_KNOX = {
