@@ -25,6 +25,7 @@ class ClientSerializer(serializers.ModelSerializer[Client]):
     address = AddressSerializer(read_only=True)
 
     class Meta:
+        model = Client
         fields = ("email", "address")
 
 
@@ -35,7 +36,7 @@ class LoginSerializer(serializers.Serializer):
             "email",
         )
     )
-    client = serializers.PrimaryKeyRelatedField[Client](queryset=Client.objects.all())
+    client = serializers.PrimaryKeyRelatedField(queryset=Client.objects.all())
     password = serializers.CharField()
 
     def _validate_password(self, data):
@@ -56,7 +57,7 @@ class LoginSerializer(serializers.Serializer):
         except MagicLink.DoesNotExist as _:
             raise ValidationError("Invalid link.")
 
-    def validate(self, attrs: Any) -> None:
+    def validate(self, attrs: Any) -> Any:
         # TODO: Migrate to a separate validator
         match attrs["method"]:
             case "password":
@@ -65,3 +66,4 @@ class LoginSerializer(serializers.Serializer):
                 self._validate_email(attrs)
             case _:
                 raise ValidationError("Invalid Request", code=400)
+        return attrs
