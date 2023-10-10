@@ -16,7 +16,7 @@ class Characteristic(models.Model):
         CHOICES = "choices", _("Choices")
         INPUT = "input", _("Input")
 
-    choices = models.JSONField(_("Characteristic choices"), default=[], blank=True)
+    choices = models.JSONField(_("Characteristic choices"), default=list, blank=True)
     input = models.CharField(_("Characteristic input"), max_length=64, default="", blank=True)
     type = models.CharField(
         _("Characteristic Type"),
@@ -48,7 +48,7 @@ class ProductPresentation(models.Model):
         _("Language"), max_length=3, choices=LANGUAGE_CHOICES  # type: ignore
     )
     name = models.CharField(_("Product Name"), max_length=64)
-    description = models.TextField(_("Product Description"), blank=True, default="")
+    description = models.TextField(_("Product Description"), blank=True, default=str)
     characteristics = models.ManyToManyField(Characteristic, verbose_name=_("Characteristics"))
 
 
