@@ -1,0 +1,1 @@
+from apps.listings.tests import *

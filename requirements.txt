@@ -1,0 +1,5 @@
+django
+environs
+pandas==2.1.1
+JSON-log-formatter==0.5.2
+pycountry
