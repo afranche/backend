@@ -7,10 +7,13 @@ from apps.listings.models import Category
 class TestInitCategories(TransactionTestCase):
 
     def setUp(self):
+        queryset = Category.objects.all()
+        if queryset.exists():
+            queryset.delete()
         call_command('init_listings')
 
     def test_init_categories(self):
-        main_categories = Category.objects.filter(parent=None)
+        main_categories = Category.objects.filter(parent__isnull=True)
         expected = ['Alimentation', 'Autres', 'Bijoux', 'Textile']
         self.assertEqual(len(main_categories), len(expected))
         for cat in main_categories:
@@ -25,3 +28,7 @@ class TestInitCategories(TransactionTestCase):
                 self.assertEqual(cat.parent.name, 'Textile')
             if cat.name == 'Colliers':
                 self.assertEqual(cat.parent.name, 'Bijoux')
+
+
+    def tearDown(self) -> None:
+        Category.objects.all().delete()

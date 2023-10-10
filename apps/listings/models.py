@@ -62,7 +62,7 @@ class Category(models.Model):
     description = models.TextField(blank=True, null=True)
     image = models.ImageField(upload_to='category_images/', blank=True, null=True)
     slug = models.SlugField(unique=True, max_length=100, allow_unicode=True)
-    parent = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True, related_name='children')
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True, null=True, related_name='children')
     listings = models.ManyToManyField(Product, related_name='categories') # Should haveI put Listing Model instead ?
     language = models.CharField(_("Language"), max_length=3, choices=LANGUAGE_CHOICES, default='fr')
 
@@ -70,7 +70,7 @@ class Category(models.Model):
         verbose_name_plural = 'Categories'
 
     def __str__(self):
-        return f'<Category {self.name.lower()}, {self.listings.object.count()} listings>'
+        return self.name
 
     def save(self, *args, **kwargs):
         # Automatically generate the slug from the category name
