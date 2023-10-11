@@ -76,7 +76,6 @@ class Client(PermissionsMixin, AbstractBaseUser):
 
     objects = ClientManager
 
-
 class MagicLinkQuerySet(models.QuerySet["MagicLink"]):
     def from_valid(self) -> MagicLinkQuerySet:
         return self.filter(expires_at__gt=datetime.datetime.now())
@@ -90,7 +89,7 @@ class MagicLink(models.Model):
 
     @staticmethod
     def _get_expiration_date():
-        return datetime.datetime.now() + datetime.timedelta(minutes=30)
+        return str(datetime.datetime.now() + datetime.timedelta(minutes=30))
 
     client = models.ForeignKey(
         Client, on_delete=models.CASCADE, verbose_name=_("client")
@@ -98,6 +97,5 @@ class MagicLink(models.Model):
     secret = models.CharField(
         _("Secret"), default=get_random_secret_key, auto_created=True, max_length=50
     )
-    expires_at = models.DateTimeField(default=_get_expiration_date)
-
+    expires_at = models.DateTimeField(default=_get_expiration_date())  # should be called otherwise it is unserializable by Django
     objects = MagicLinkQuerySet.as_manager()

@@ -1,69 +1,19 @@
+from collections.abc import Iterable
 from django.db import models
 from django.utils.translation import gettext as _
 from django.utils.text import slugify
+from django.contrib.postgres.fields import ArrayField
 
 import pycountry
     
 LANGUAGE_CHOICES = ((language.alpha_3, _(language.name)) for language in pycountry.languages)  # type: ignore
 
-class Characteristic(models.Model):
-    """
-        Characteristic is a property used to customize a product.
-        Ex: select between 3 colors, input a text that will appear on the product, etc.
-    """
-
-    class CharacteristicType(models.TextChoices):
-        CHOICES = "choices", _("Choices")
-        INPUT = "input", _("Input")
-
-    choices = models.JSONField(_("Characteristic choices"), default=list, blank=True)
-    input = models.CharField(_("Characteristic input"), max_length=64, default="", blank=True)
-    type = models.CharField(
-        _("Characteristic Type"),
-        choices=CharacteristicType.choices,
-        max_length=64,
-        blank=False,
-    )
-    multiple_choices = models.BooleanField(_("Multiple choices"), default=False)
-
-
-class Product(models.Model):
-    class ProductType(models.IntegerChoices):
-        OTHER = 0
-        FOOD = 1
-
-    type = models.IntegerField(
-        _("Product Type"), choices=ProductType.choices, default=ProductType.OTHER
-    )
-    manufacturer = models.CharField(_("Manufacturer"), max_length=64)
-    price = models.FloatField(_("Price"))
-
-
-class ProductPresentation(models.Model):
-
-    product = models.ForeignKey(
-        Product, on_delete=models.CASCADE, verbose_name=_("Product")
-    )
-    lang = models.CharField(  # type: ignore
-        _("Language"), max_length=3, choices=LANGUAGE_CHOICES  # type: ignore
-    )
-    name = models.CharField(_("Product Name"), max_length=64)
-    description = models.TextField(_("Product Description"), blank=True, default=str)
-    characteristics = models.ManyToManyField(Characteristic, verbose_name=_("Characteristics"))
-
-
-class Listing(models.Model):
-    additional_price = models.FloatField(_("Additional price for that listing"))
-    characteristics = models.JSONField(_("Listing characteristics"))
-
-
 class Category(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
-    image = models.ImageField(upload_to='category_images/', blank=True, null=True)
+    image = models.TextField(blank=True, null=True, max_length=512)
     slug = models.SlugField(unique=True, max_length=100, allow_unicode=True)
     parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True, null=True, related_name='children')
-    listings = models.ManyToManyField(Product, related_name='categories') # Should haveI put Listing Model instead ?
     language = models.CharField(_("Language"), max_length=3, choices=LANGUAGE_CHOICES, default='fr')
 
     class Meta:
@@ -77,3 +27,77 @@ class Category(models.Model):
         if not self.slug:
             self.slug = slugify(self.name)
         super().save(*args, **kwargs)
+
+class Characteristic(models.Model):
+    """
+        Characteristic is a property used to customize a product.
+        Ex: select between 3 colors, input a text that will appear on the product, etc.
+    """
+
+    class CharacteristicType(models.TextChoices):
+        CHOICES = "choices", _("Choices")
+        INPUT = "input", _("Input")
+
+    choices = ArrayField(models.CharField(_("Characteristic choices"), max_length=112), blank=True, default=list)
+    # input = models.CharField(_("Characteristic input"), max_length=64, default="", blank=True)
+    #  this is the user's choice so it should be on order apps model not here
+    label = models.CharField(_("Characteristic label"), max_length=100, blank=False, default="")
+    type = models.CharField(
+        _("Characteristic Type"),
+        choices=CharacteristicType.choices,
+        max_length=112,
+        blank=False,
+    )
+    multiple_choices = models.BooleanField(_("Multiple choices"), default=False)
+
+    def save(self, *args, **kwargs) -> None:
+        if self.type == Characteristic.CharacteristicType.INPUT:
+            self.choices = []
+        else:
+            self.choices = [choice.strip() for choice in self.choices if choice.strip() != ""]
+        return super().save(*args, **kwargs)
+
+
+class Product(models.Model):
+    class ProductType(models.IntegerChoices):
+        OTHER = 0
+        FOOD = 1
+
+    type = models.IntegerField(
+        _("Product Type"), choices=ProductType.choices, default=ProductType.OTHER
+    )
+    manufacturer = models.CharField(_("Manufacturer"), max_length=112)
+    price = models.FloatField(_("Price"))
+    weight = models.FloatField(_("Weight in g"), blank=True, null=True, default=25)
+    conservation = models.CharField(_("Conservation"), max_length=124, blank=True)
+    lang = models.CharField(  # type: ignore
+        _("Language"), max_length=3, choices=LANGUAGE_CHOICES, default='fr'  # type: ignore
+    )
+    name = models.CharField(_("Product Name"), max_length=112)
+    images = ArrayField(models.TextField(_("Image Path")), blank=True, default=list)
+    description = models.TextField(_("Product Description"), blank=True, default=str)
+
+    def __str__(self):
+        return f'{self.name} - {self.manufacturer} - {self.price}€, id: {self.id}'
+
+    def save(self, *args, **kwargs):
+        self.name = self.name.strip()
+        self.manufacturer = self.manufacturer.strip()
+        self.description = self.description.strip()
+        self.images = [image.strip() for image in self.images if image.strip() != ""]
+        return super().save(*args, **kwargs)
+
+
+class Listing(models.Model):
+
+    characteristics = models.ManyToManyField(Characteristic, verbose_name=_("Listing Characteristics"))
+    additional_price = models.FloatField(_("Additional price for that listing"), default=0.0)
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, verbose_name=_("Product")
+    )
+    categories = models.ManyToManyField(Category)
+
+    def __str__(self):
+        return f'{self.product} - Category: {self.categories} - Characteristics: {self.characteristics}'
+
+
