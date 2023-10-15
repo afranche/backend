@@ -1,20 +1,19 @@
 from __future__ import annotations
 
 import datetime
-from typing import Collection
 
 # TODO: Add type-stubs afterwards for pycountry
 import pycountry  # type: ignore
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
-from django.core.exceptions import ValidationError
 from django.core.management.utils import get_random_secret_key
 from django.db import models
 from django.utils.translation import gettext as _
 
 
 class Address(models.Model):
-    COUNTRY_CHOICES = ((country.alpha_3, _(country.name)) for country in pycountry.countries)  # type: ignore
+    # TOFIX: unable to create a country in french
+    COUNTRY_CHOICES = tuple((country.alpha_3, _(country.name)) for country in pycountry.countries)  # type: ignore
 
     timestamp = models.DateTimeField(
         _("Address creation timestamp"),
