@@ -53,8 +53,31 @@ class Address(models.Model):
     )
 
 
-class ClientManager(BaseUserManager["Client"]):
-    pass
+class CustomUserManager(BaseUserManager):
+    def create_user(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError("Users must have an email address")
+
+        user = self.model(
+            email=self.normalize_email(email),
+            **extra_fields,
+        )
+
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, password, **extra_fields):
+        # Create and save a superuser with the given email and password.
+        user = self.create_user(
+            email,
+            password=password,
+            **extra_fields,
+        )
+        user.is_staff = True
+        # user.is_admin = True
+        user.save(using=self._db)
+        return user
 
 
 class Client(PermissionsMixin, AbstractBaseUser):
@@ -72,9 +95,22 @@ class Client(PermissionsMixin, AbstractBaseUser):
         Address, on_delete=models.SET_NULL, blank=True, null=True
     )
 
-    is_active = True
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
 
-    objects = ClientManager
+    objects = CustomUserManager()
+
+    @property
+    def is_admin(self):
+        return self.is_staff
+    
+    @property
+    def is_superuser(self):
+        return self.is_staff
+    
+    @property
+    def is_active(self):
+        return True
 
 class MagicLinkQuerySet(models.QuerySet["MagicLink"]):
     def from_valid(self) -> MagicLinkQuerySet:
