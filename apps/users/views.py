@@ -4,8 +4,14 @@ from knox.views import LoginView as KnoxLoginView
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework import viewsets
 
-from .serializers import LoginSerializer
+from apps.users.models import Client
+from rest_framework import status
+
+from apps.users.permissions import ManageOnlyYourOwn
+
+from .serializers import ClientChangeSerializer, ClientCreationSerializer, ClientSerializer, LoginSerializer
 
 
 class PongView(APIView):
@@ -30,3 +36,14 @@ class ClientLoginView(KnoxLoginView):
 
         del response.data["token"]
         return response
+
+
+class ClientViewSet(viewsets.ModelViewSet):
+    serializer_class = ClientSerializer
+    queryset = Client.objects.all().order_by('email')
+    permission_classes = (ManageOnlyYourOwn,)
+    lookup_field = 'email'
+
+    def get_object(self):
+        email = self.kwargs['email']
+        return self.queryset.get(email=email)

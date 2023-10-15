@@ -9,6 +9,7 @@ from .models import Address, Client, MagicLink
 
 class AddressSerializer(serializers.ModelSerializer[Address]):
     class Meta:
+        model = Address
         fields = (
             "timestamp",
             "name",
@@ -28,6 +29,38 @@ class ClientSerializer(serializers.ModelSerializer[Client]):
         model = Client
         fields = ("email", "address")
 
+class ClientCreationSerializer(serializers.ModelSerializer):
+    password1 = serializers.CharField(write_only=True)
+    password2 = serializers.CharField(write_only=True)
+    address = AddressSerializer(read_only=True)
+
+    class Meta:
+        model = Client
+        fields = ["email", "password1", "password2", "address"]
+    
+    def validate(self, attrs: Any) -> Any:
+        if attrs["password1"] != attrs["password2"]:
+            raise ValidationError("Passwords don't match.")
+        return attrs
+    
+    def create(self, validated_data: Any) -> Client:
+        validated_data.pop("password2")
+        password = validated_data.pop("password1")
+        if "address" in validated_data:
+            address = Address.objects.create(**validated_data.pop("address"))
+        else:
+            address = None
+        client = Client.objects.create(address=address, **validated_data)
+        client.set_password(password)
+        client.save()
+        return client
+
+class ClientChangeSerializer(serializers.ModelSerializer):
+    address = AddressSerializer(read_only=True)
+
+    class Meta:
+        model = Client
+        fields = ["email", "address"]
 
 class LoginSerializer(serializers.Serializer):
     method = serializers.ChoiceField(
