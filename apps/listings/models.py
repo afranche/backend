@@ -9,10 +9,10 @@ import pycountry
 LANGUAGE_CHOICES = ((language.alpha_3, _(language.name)) for language in pycountry.languages)  # type: ignore
 
 class Category(models.Model):
-    name = models.CharField(max_length=100)
+    name = models.CharField(blank=True, null=True, max_length=100)
     description = models.TextField(blank=True, null=True)
     image = models.TextField(blank=True, null=True, max_length=512)
-    slug = models.SlugField(unique=True, max_length=100, allow_unicode=True)
+    slug = models.SlugField(blank=True, null=True, unique=True, max_length=100, allow_unicode=True)
     parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True, null=True, related_name='children')
     language = models.CharField(_("Language"), max_length=3, choices=LANGUAGE_CHOICES, default='fr')
 
