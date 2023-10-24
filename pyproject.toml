@@ -13,6 +13,7 @@ djangorestframework = "^3.14.0"
 json-log-formatter = "^0.5.2"
 pycountry = "^22.3.5"
 django-rest-knox = "^4.2.0"
+django-cors-headers = "^4.3.0"
 
 
 [tool.poetry.group.dev.dependencies]
