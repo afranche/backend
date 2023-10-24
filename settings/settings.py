@@ -44,6 +44,7 @@ DJANGO_APPS = [
 ]
 
 INSTALLED_APPS = DJANGO_APPS + [
+    "corsheaders",
     "rest_framework",
     "knox",
     "apps.listings.Config",
@@ -54,6 +55,7 @@ INSTALLED_APPS = DJANGO_APPS + [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -133,6 +135,10 @@ REST_FRAMEWORK = {
 REST_KNOX = {
     "USER_SERIALIZER": "apps.users.serializers.ClientSerializer",
 }
+
+CORS_ALLOWED_ORIGINS = env.list(
+    "DJANGO_ALLOWED_ORIGINS", default=["http://localhost:8000", "http://127.0.0.1:8000"]
+)  # type: ignore
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
