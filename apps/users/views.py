@@ -7,11 +7,10 @@ from rest_framework.response import Response
 from rest_framework import viewsets
 
 from apps.users.models import Client
-from rest_framework import status
 
 from apps.users.permissions import ManageOnlyYourOwn
 
-from .serializers import ClientChangeSerializer, ClientCreationSerializer, ClientSerializer, LoginSerializer
+from .serializers import ClientSerializer, LoginSerializer
 
 
 class PongView(APIView):
