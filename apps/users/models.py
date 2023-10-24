@@ -88,7 +88,7 @@ class Client(PermissionsMixin, AbstractBaseUser):
 
     USERNAME_FIELD = "email"
 
-    email = models.EmailField(_("email address"), primary_key=True)
+    email = models.EmailField(_("email address"), unique=True)
     password = models.CharField(_("password"), max_length=128, blank=True, null=True)
     address = models.ForeignKey(
         Address, on_delete=models.SET_NULL, blank=True, null=True
