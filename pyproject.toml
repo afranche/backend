@@ -6,7 +6,7 @@ authors = ["Anouar Aissaoui <anouar.aissaoui@pm.me>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = ">=3.11,<3.13"
 django = "^4.2.4"
 environs = {extras = ["django"], version = "^9.5.0"}
 djangorestframework = "^3.14.0"
@@ -15,6 +15,8 @@ pycountry = "^22.3.5"
 django-rest-knox = "^4.2.0"
 django-cors-headers = "^4.3.0"
 psycopg = {extras = ["binary"], version = "^3.1.12"}
+numpy = "^1.26.1"
+pandas = "^2.1.1"
 
 
 [tool.poetry.group.dev.dependencies]

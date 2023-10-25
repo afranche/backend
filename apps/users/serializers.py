@@ -24,10 +24,14 @@ class AddressSerializer(serializers.ModelSerializer[Address]):
 
 class ClientSerializer(serializers.ModelSerializer[Client]):
     address = AddressSerializer(read_only=True)
+    groups = serializers.SerializerMethodField()
+
+    def get_groups(self, obj: Client):
+        return obj.groups.values_list("name", flat=True)
 
     class Meta:
         model = Client
-        fields = ("email", "address")
+        fields = ("email", "address", "is_staff", "groups")
 
 class ClientCreationSerializer(serializers.ModelSerializer):
     password1 = serializers.CharField(write_only=True)
