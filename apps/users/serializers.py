@@ -66,37 +66,39 @@ class LoginSerializer(serializers.Serializer):
     method = serializers.ChoiceField(
         choices=(
             "password",
-            "email",
+            "email_from_magic_link",
         )
     )
-    client = serializers.PrimaryKeyRelatedField(queryset=Client.objects.all())
-    password = serializers.CharField()
+    email = serializers.EmailField()
+    password = serializers.CharField()  # Is either password or secret from magic link
 
     def _validate_password(self, data):
         try:
-            client = data["client"]
-
-            if not client.check_password(data["password"]):
+            email = data["email"]
+            password = data["password"]
+            client = Client.objects.get(email=email)
+            
+            if not client.check_password(password):
                 raise InvalidPasswordException
         except (Client.DoesNotExist, InvalidPasswordException) as _:
-            raise ValidationError("Invalid password or e-mail.")
+            raise ValidationError("Invalid password or email.")
 
-    def _validate_email(self, data):
+    def _validate_email_from_magic_link(self, data):
         try:
             # We get the magic link and delete it if found (since it was validated)
             MagicLink.objects.from_valid().get(
-                client=data["client"], secret=data["password"]
+                client__email=data["email"],
+                secret=data["password"]  # In this case, the password is the secret
             ).delete()
         except MagicLink.DoesNotExist as _:
             raise ValidationError("Invalid link.")
 
     def validate(self, attrs: Any) -> Any:
-        # TODO: Migrate to a separate validator
-        match attrs["method"]:
-            case "password":
-                self._validate_password(attrs)
-            case "email":
-                self._validate_email(attrs)
-            case _:
-                raise ValidationError("Invalid Request", code=400)
+        method = attrs["method"]
+        if method == "password":
+            self._validate_password(attrs)
+        elif method == "email_from_magic_link":
+            self._validate_email_from_magic_link(attrs)
+        else:
+            raise ValidationError("Invalid Request", code=400)
         return attrs

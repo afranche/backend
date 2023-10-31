@@ -10,6 +10,6 @@ router.register('category', CategoryViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('api/categories/filter/', CategoryFilterAPIView.as_view(), name='category-filter-api'),
-    path('api/listings/filter/', ListingFilterAPIView.as_view(), name='listing-filter-api'),
+    path('categories/filter', CategoryFilterAPIView.as_view(), name='category-filter-api'),
+    path('listings/filter', ListingFilterAPIView.as_view(), name='listing-filter-api'),
 ]
