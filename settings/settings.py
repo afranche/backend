@@ -30,7 +30,8 @@ SECRET_KEY = env.str("DJANGO_SECRET_KEY")  # type: ignore
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=[])  # type: ignore
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "localhost:8000"])  # type: ignore
+print("allowed hosts", ALLOWED_HOSTS)
 
 
 # Application definition
@@ -119,7 +120,7 @@ WSGI_APPLICATION = "settings.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-
+# postgres DATABASE
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -140,9 +141,16 @@ REST_KNOX = {
 }
 
 CORS_ALLOWED_ORIGINS = env.list(
-    "DJANGO_ALLOWED_ORIGINS", default=["http://localhost:8000", "http://127.0.0.1:8000"]
+    "DJANGO_ALLOWED_ORIGINS", default=[
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "https://palestinement.com",
+        "https://www.palestinement.com",
+        "http://palestinement.com",
+        "http://www.palestinement.com",
+        "http://localhost:4321",
+        'http://127.0.0.1:4321'   ]
 )  # type: ignore
-
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
