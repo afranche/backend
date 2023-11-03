@@ -2,10 +2,10 @@ from django.test import TransactionTestCase
 from django.core.management import call_command
 
 from apps.listings.models import Category, Listing, Product, Characteristic
-# from .category import *
-# from .listings import *
 from .filtering import *
-'''
+from .category import *
+from .listings import *
+
 class TestInitCategories(TransactionTestCase):
 
     def setUp(self):
@@ -58,4 +58,3 @@ class TestInitCategories(TransactionTestCase):
         Listing.objects.all().delete()
         Characteristic.objects.all().delete()
         Product.objects.all().delete()
-        '''

@@ -1,6 +1,5 @@
 from rest_framework import viewsets, generics
 from apps.users.permissions import IsAdminOrReadOnly
-
 from .serializers import CategorySerializer, ListingSerializer
 from .models import Category, Listing
 
