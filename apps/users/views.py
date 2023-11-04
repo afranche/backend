@@ -1,6 +1,7 @@
 import warnings
 import copy
 from django.contrib.auth import login
+from django.conf import settings
 from knox.views import LoginView as KnoxLoginView
 
 from rest_framework.views import APIView
@@ -33,7 +34,14 @@ class ClientLoginView(KnoxLoginView):
         login(request, user)
 
         response = super(ClientLoginView, self).post(request, format=None)
-        response.set_cookie("PST_TOKEN", copy.deepcopy(response.data["token"]), httponly=True)
+        response.set_cookie(
+            "PST_TOKEN",
+            copy.deepcopy(response.data["token"]),
+            expires=response.data["expiry"],
+            secure=not settings.DEBUG,
+            httponly=True,
+            samesite="Strict",
+        )
 
         del response.data["token"]
         return response
@@ -41,12 +49,12 @@ class ClientLoginView(KnoxLoginView):
 
 class ClientViewSet(viewsets.ModelViewSet):
     serializer_class = ClientSerializer
-    queryset = Client.objects.all().order_by('email')
+    queryset = Client.objects.all().order_by("email")
     permission_classes = (ManageOnlyYourOwn,)
-    lookup_field = 'email'
+    lookup_field = "email"
 
     def get_object(self):
-        email = self.kwargs['email']
+        email = self.kwargs["email"]
         warnings.warn(f"email: {email}")
-        warnings.warn(f'kwargs: {self.kwargs}')
+        warnings.warn(f"kwargs: {self.kwargs}")
         return self.queryset.get(email=email)
