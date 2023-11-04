@@ -140,6 +140,8 @@ REST_KNOX = {
     "USER_SERIALIZER": "apps.users.serializers.ClientSerializer",
 }
 
+CORS_ALLOW_CREDENTIALS = DEBUG
+
 CORS_ALLOWED_ORIGINS = env.list(
     "DJANGO_ALLOWED_ORIGINS",
     default=[
