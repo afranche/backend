@@ -1,3 +1,4 @@
+import warnings
 from django.contrib.auth import login
 from knox.views import LoginView as KnoxLoginView
 
@@ -27,13 +28,14 @@ class ClientLoginView(KnoxLoginView):
     def post(self, request, format=None):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data["client"]
+        user = Client.objects.get(email=serializer.validated_data["email"])
         login(request, user)
 
         response = super(ClientLoginView, self).post(request, format=None)
         response.set_cookie("PST_TOKEN", response.data["token"], httponly=True)
 
         del response.data["token"]
+        response.data['is_staff'] = user.is_staff
         return response
 
 
@@ -45,4 +47,6 @@ class ClientViewSet(viewsets.ModelViewSet):
 
     def get_object(self):
         email = self.kwargs['email']
+        warnings.warn(f"email: {email}")
+        warnings.warn(f'kwargs: {self.kwargs}')
         return self.queryset.get(email=email)
