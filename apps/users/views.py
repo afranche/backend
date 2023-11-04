@@ -1,4 +1,5 @@
 import warnings
+import copy
 from django.contrib.auth import login
 from knox.views import LoginView as KnoxLoginView
 
@@ -32,7 +33,7 @@ class ClientLoginView(KnoxLoginView):
         login(request, user)
 
         response = super(ClientLoginView, self).post(request, format=None)
-        response.set_cookie("PST_TOKEN", response.data["token"], httponly=True)
+        response.set_cookie("PST_TOKEN", copy.deepcopy(response.data["token"]), httponly=True)
 
         del response.data["token"]
         return response
