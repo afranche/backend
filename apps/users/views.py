@@ -35,7 +35,6 @@ class ClientLoginView(KnoxLoginView):
         response.set_cookie("PST_TOKEN", response.data["token"], httponly=True)
 
         del response.data["token"]
-        response.data['is_staff'] = user.is_staff
         return response
 
 

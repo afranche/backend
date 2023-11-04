@@ -27,7 +27,7 @@ class ClientSerializer(serializers.ModelSerializer[Client]):
 
     class Meta:
         model = Client
-        fields = ("email", "address")
+        fields = ("email", "address", "is_active", "is_staff")
 
 class ClientCreationSerializer(serializers.ModelSerializer):
     password1 = serializers.CharField(write_only=True)
