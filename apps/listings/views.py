@@ -1,4 +1,5 @@
 from rest_framework import viewsets, generics
+from apps.listings.pagination import CategoryPagination, ListingPagination
 from apps.users.permissions import IsAdminOrReadOnly
 from .serializers import CategorySerializer, ListingSerializer
 from .models import Category, Listing
@@ -7,12 +8,14 @@ class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all().order_by('name')
     serializer_class = CategorySerializer
     permission_classes = [IsAdminOrReadOnly]
+    pagination_class = CategoryPagination
 
 
 class ListingViewSet(viewsets.ModelViewSet):
     queryset = Listing.objects.all().order_by('product__name')
     serializer_class = ListingSerializer
     permission_classes = [IsAdminOrReadOnly]
+    pagination_class = ListingPagination
 
     def get_queryset(self):
         queryset = Listing.objects.all().order_by('product__name')
@@ -27,6 +30,8 @@ class ListingViewSet(viewsets.ModelViewSet):
 
 class CategoryFilterAPIView(generics.ListAPIView):
     serializer_class = CategorySerializer
+    permission_classes = [IsAdminOrReadOnly]
+    pagination_class = CategoryPagination
 
     def get_queryset(self):
         queryset = Category.objects.all()
@@ -48,6 +53,8 @@ class CategoryFilterAPIView(generics.ListAPIView):
 
 class ListingFilterAPIView(generics.ListAPIView):
     serializer_class = ListingSerializer
+    permission_classes = [IsAdminOrReadOnly]
+    pagination_class = ListingPagination
 
     def get_queryset(self):
         queryset = Listing.objects.all()
