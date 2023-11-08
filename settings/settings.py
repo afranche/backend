@@ -141,7 +141,8 @@ REST_KNOX = {
 }
 
 CORS_ALLOWED_ORIGINS = env.list(
-    "DJANGO_ALLOWED_ORIGINS", default=[
+    "DJANGO_ALLOWED_ORIGINS",
+    default=[
         "http://localhost:8000",
         "http://127.0.0.1:8000",
         "https://palestinement.com",
@@ -149,7 +150,8 @@ CORS_ALLOWED_ORIGINS = env.list(
         "http://palestinement.com",
         "http://www.palestinement.com",
         "http://localhost:4321",
-        'http://127.0.0.1:4321'   ]
+        "http://127.0.0.1:4321",
+    ],
 )  # type: ignore
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -187,6 +189,22 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = "static/"
+
+_R2_BUCKET_CONFIG = {
+    "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+    "OPTIONS": {
+        "access_key": env.str("R2_ACCESS_KEY"),
+        "secret_key": env.str("R2_SECRET_KEY"),
+        "bucket_name": env.str("R2_BUCKET"),
+        "endpoint_url": env.str("R2_ENDPOINT"),
+    },
+}
+
+
+STORAGES = {
+    "default": _R2_BUCKET_CONFIG,
+    "staticfiles": _R2_BUCKET_CONFIG,
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
