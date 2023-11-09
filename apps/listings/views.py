@@ -15,11 +15,22 @@ class CategoryViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrReadOnly]
     pagination_class = DefaultPagination
 
+
 class ListingViewSet(viewsets.ModelViewSet):
     queryset = Listing.objects.all().order_by('product__name')
     serializer_class = ListingSerializer
     permission_classes = [IsAdminOrReadOnly]
     pagination_class = DefaultPagination
+
+    def get_queryset(self):
+        queryset = Listing.objects.all().order_by('product__name')
+        category = self.request.query_params.get('category', None)
+        name = self.request.query_params.get('name', None)
+        if category is not None:
+            queryset = queryset.filter(category__name=category)
+        if name is not None:
+            queryset = queryset.filter(product__name__icontains=name)
+        return queryset
 
 
 class CategoryFilterAPIView(generics.ListAPIView):
