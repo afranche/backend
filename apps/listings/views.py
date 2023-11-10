@@ -1,6 +1,7 @@
 import base64
 from rest_framework import viewsets, generics
 from django.core.files.base import ContentFile
+
 from apps.listings.pagination import CategoryPagination, ListingPagination
 from apps.users.permissions import IsAdminOrReadOnly
 from .serializers import CategorySerializer, ListingSerializer
