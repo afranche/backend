@@ -1,4 +1,7 @@
-from rest_framework import viewsets, generics
+import base64
+from rest_framework import viewsets, generics, status
+from django.core.files.base import ContentFile
+from rest_framework.response import Response
 from apps.listings.pagination import CategoryPagination, ListingPagination
 from apps.users.permissions import IsAdminOrReadOnly
 from .serializers import CategorySerializer, ListingSerializer
@@ -9,6 +12,20 @@ class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer
     permission_classes = [IsAdminOrReadOnly]
     pagination_class = CategoryPagination
+
+    def create(self, request, *args, **kwargs):
+        image_data = request.data.get('image')
+
+        if image_data:
+            try:
+                # Decode the base64 image data
+                image_data = base64.b64decode(image_data.split(',')[1])
+            except Exception as e:
+                return Response({'error': 'Invalid base64-encoded image data'}, status=status.HTTP_400_BAD_REQUEST)
+
+            request.data['image'] = ContentFile(image_data, name=f'{request.data["name"]}-cover.png')
+
+        return super().create(request, *args, **kwargs)
 
 
 class ListingViewSet(viewsets.ModelViewSet):

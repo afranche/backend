@@ -1,7 +1,9 @@
 # Serializers for Category Model, Product Model
 
+import base64
 from rest_framework import serializers
 from .models import Category, Product, Characteristic, Listing
+from django.core.files.base import ContentFile
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
