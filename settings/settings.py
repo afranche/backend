@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 from environs import Env
@@ -202,6 +203,8 @@ _R2_BUCKET_CONFIG = {
     },
 }
 
+AWS_S3_SIGNATURE_VERSION="s3v4"
+os.environ.setdefault('S3_USE_SIGV4', 'True')
 
 STORAGES = {
     "default": _R2_BUCKET_CONFIG,
