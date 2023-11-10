@@ -1,5 +1,6 @@
 from rest_framework.test import APITestCase
 from rest_framework import status
+from django.core.files.uploadedfile import SimpleUploadedFile
 
 from apps.listings.models import Category
 from apps.users.models import Client
@@ -62,3 +63,45 @@ class CategoryViewSetTestCase(APITestCase):
 
         response = self.client.delete(f'/listings/category/{category.id}/')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    
+    def test_admin_can_create_update_delete_category(self):
+        self.client.force_authenticate(user=self.admin_user)  # Authenticate as admin user
+
+        # Create a SimpleUploadedFile for testing with a sample image
+        image = SimpleUploadedFile("./images/category_hero.png", b"image", content_type="image/jpeg")
+
+        data = {
+            'name': 'Another Category',
+            'image': image,
+        }
+
+        response = self.client.post('/listings/category/', data, format='multipart')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        category = Category.objects.get(name='Another Category')
+        self.assertIsNotNone(category.image)  # Ensure the image is saved
+
+        # Rest of the test remains unchanged...
+
+    def test_retrieve_category_with_image(self):
+        self.client.force_authenticate(user=self.admin_user)  # Authenticate as admin user
+
+        # Create a SimpleUploadedFile for testing with a sample image
+        image = SimpleUploadedFile("./images/category_hero.png", b"image", content_type="image/jpeg")
+
+        data = {
+            'name': 'Category with Image',
+            'image': image,
+        }
+
+        # Create a category with an image
+        response = self.client.post('/listings/category/', data, format='multipart')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        category_id = response.data['id']
+
+        # Retrieve the category and ensure the image URL is present in the response
+        response = self.client.get(f'/listings/category/{category_id}/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('image', response.data)

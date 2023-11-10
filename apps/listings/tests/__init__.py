@@ -47,7 +47,7 @@ class TestInitCategories(TransactionTestCase):
         self.assertEqual(listing.product.weight, 100)
         self.assertEqual(listing.product.manufacturer, 'Aladin')
         self.assertEqual(listing.product.conservation, "Pour le lavage, suivre les instructions sur l'étiquette du tote bag. Laver à l'envers. Ne pas repasser l'imprimé. ")
-        self.assertEqual(listing.product.lang, 'fr')
+        self.assertEqual(listing.product.lang, 'fra')
         self.assertEqual(listing.characteristics.first().label, 'le motif que vous voulez')
         self.assertEqual(listing.characteristics.first().type, Characteristic.CharacteristicType.INPUT)
 

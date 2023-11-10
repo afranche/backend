@@ -11,10 +11,10 @@ LANGUAGE_CHOICES = ((language.alpha_3, _(language.name)) for language in pycount
 class Category(models.Model):
     name = models.CharField(blank=True, null=True, max_length=100)
     description = models.TextField(blank=True, null=True)
-    image = models.TextField(blank=True, null=True, max_length=512)
+    image = models.FileField(upload_to='categories_cover/', blank=True, null=True, max_length=512)
     slug = models.SlugField(blank=True, null=True, unique=True, max_length=100, allow_unicode=True)
     parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True, null=True, related_name='children')
-    language = models.CharField(_("Language"), max_length=3, choices=LANGUAGE_CHOICES, default='fr')
+    language = models.CharField(_("Language"), max_length=3, choices=LANGUAGE_CHOICES, default='fra')
 
     class Meta:
         verbose_name_plural = 'Categories'
@@ -71,7 +71,7 @@ class Product(models.Model):
     weight = models.FloatField(_("Weight in g"), blank=True, null=True, default=25)
     conservation = models.CharField(_("Conservation"), max_length=124, blank=True)
     lang = models.CharField(  # type: ignore
-        _("Language"), max_length=3, choices=LANGUAGE_CHOICES, default='fr'  # type: ignore
+        _("Language"), max_length=3, choices=LANGUAGE_CHOICES, default='fra'  # type: ignore
     )
     name = models.CharField(_("Product Name"), max_length=112)
     images = ArrayField(models.TextField(_("Image Path")), blank=True, default=list)
