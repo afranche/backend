@@ -1,12 +1,29 @@
 import re
+from uuid import uuid4
 from django.core.management.base import BaseCommand
 import requests
 import pandas as pd
 import io
 
-from apps.listings.models import Category, Product, Listing, Characteristic
+from apps.listings.models import Category, Image, Product, Listing, Characteristic
+from apps.listings.views import decode_base64_file
 
+def download_image_from_drive(link: str) -> Image | None:
+    # Extract file ID from the Google Drive link
+    file_id = link.split('/')[-2]
 
+    # Construct the download link
+    download_link = f'https://drive.google.com/uc?id={file_id}'
+
+    # Fetch the image content
+    response = requests.get(download_link)
+
+    if response.status_code == 200:
+        base64_image = decode_base64_file({'image': response.text, 'name': uuid4().__str__()})
+        return Image.objects.create(image=base64_image)
+    else:
+        # Handle the case where the image couldn't be fetched
+        return None
 
 class Command(BaseCommand):
     def handle(self, *_, **__):
@@ -28,10 +45,9 @@ class Command(BaseCommand):
         print("Listings created.")
         print(Listing.objects.all())
 
-    
     def create_listings(self, df: pd.DataFrame) -> None:
         for _, row in df.iterrows():
-            product = Product(
+            product = Product.objects.create(
                 name=row['name'],
                 description=row['description'],
                 price=row['price €'],
@@ -39,8 +55,13 @@ class Command(BaseCommand):
                 weight=row['weight g'],
                 type=Product.ProductType.FOOD if row['is food'] == 'VRAI' else Product.ProductType.OTHER,
                 conservation=row['how to conserve it'],
-                images=row['images'].split(' '),
             )
+            product.images.set([])
+            for image in row['images'].split(' '):
+                if image.strip() == "":
+                    continue
+                product.images.add(download_image_from_drive(image.strip()))
+
             product.save()
             listing = Listing(product=product)
             listing.save()

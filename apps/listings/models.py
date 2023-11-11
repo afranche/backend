@@ -1,8 +1,11 @@
 from collections.abc import Iterable
+from uuid import uuid4
 from django.db import models
 from django.utils.translation import gettext as _
 from django.utils.text import slugify
 from django.contrib.postgres.fields import ArrayField
+import base64
+from django.core.files.base import ContentFile
 
 import pycountry
     
@@ -58,6 +61,10 @@ class Characteristic(models.Model):
         return super().save(*args, **kwargs)
 
 
+class Image(models.Model):
+    image = models.FileField(upload_to='products_images/', blank=True, null=True)
+
+
 class Product(models.Model):
     class ProductType(models.IntegerChoices):
         OTHER = 0
@@ -67,6 +74,9 @@ class Product(models.Model):
         _("Product Type"), choices=ProductType.choices, default=ProductType.OTHER
     )
     manufacturer = models.CharField(_("Manufacturer"), max_length=112)
+    images = models.ManyToManyField(Image, verbose_name=_("Product Images"), blank=True, null=True)
+    stock = models.IntegerField(_("Stock"), default=0)
+    is_available = models.BooleanField(_("Is available"), default=True)
     price = models.FloatField(_("Price"))
     weight = models.FloatField(_("Weight in g"), blank=True, null=True, default=25)
     conservation = models.CharField(_("Conservation"), max_length=124, blank=True)
@@ -74,7 +84,6 @@ class Product(models.Model):
         _("Language"), max_length=3, choices=LANGUAGE_CHOICES, default='fra'  # type: ignore
     )
     name = models.CharField(_("Product Name"), max_length=112)
-    images = ArrayField(models.TextField(_("Image Path")), blank=True, default=list)
     description = models.TextField(_("Product Description"), blank=True, default=str)
 
     def __str__(self):
@@ -84,7 +93,6 @@ class Product(models.Model):
         self.name = self.name.strip()
         self.manufacturer = self.manufacturer.strip()
         self.description = self.description.strip()
-        self.images = [image.strip() for image in self.images if image.strip() != ""]
         return super().save(*args, **kwargs)
 
 
