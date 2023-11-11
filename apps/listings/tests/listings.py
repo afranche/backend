@@ -1,5 +1,6 @@
 import base64
 import os
+import warnings
 from rest_framework.test import APITestCase
 from rest_framework import status
 
@@ -45,8 +46,21 @@ class ListingViewSetTestCase(APITestCase):
         # Authenticate as a regular user (client)
         self.client.force_authenticate(user=self.client_user)
 
+
+        with open(self.absolute_path, 'rb') as image:
+            images = [
+                {
+                    'image': base64.encodebytes(image.read()),
+                },
+                {
+                    'image': base64.encodebytes(image.read()),
+                }
+            ]
+
         data = {
-            'product': {'name': 'New Product', 'manufacturer': 'New Manufacturer', 'price': 20.0},
+            'product': {
+                'name': 'New Product', 'manufacturer': 'New Manufacturer', 'price': 20.0,
+                'images': images},
             'additional_price': 5.0,
             'characteristics': [
                 {'label': 'Characteristic 1', 'type': 'input'},
@@ -54,8 +68,6 @@ class ListingViewSetTestCase(APITestCase):
             ],
             'categories': [{"id": self.category1.id}],
         }
-        with open(self.absolute_path, 'rb') as image:
-            data['images'] = [ base64.encodebytes(image.read()), base64.encodebytes(image.read())]
 
         # Try to create a new listing (POST request)
         response = self.client.post('/listings/product/', data, format='json')
@@ -73,6 +85,7 @@ class ListingViewSetTestCase(APITestCase):
         # Authenticate as an admin user
         self.client.force_authenticate(user=self.admin_user)
 
+
         data = {
             'product': {'name': 'New Product', 'manufacturer': 'New Manufacturer', 'price': 20.0},
             'additional_price': 5.0,
@@ -80,6 +93,7 @@ class ListingViewSetTestCase(APITestCase):
                 {'label': 'Characteristic 1', 'type': 'input'},
                 {'label': 'Pick a color', 'type': 'choices', 'choices': ['red', 'green', 'blue']}
             ],
+            'images': [],
             'categories': [{"id": self.category1.id}],
         }
 
@@ -89,14 +103,30 @@ class ListingViewSetTestCase(APITestCase):
 
         listing_id = response.data['id']
 
-        # Admin can update an existing listing (PUT request)
         with open(self.absolute_path, 'rb') as image:
-            data['images'] = [base64.encodebytes(image.read()), base64.encodebytes(image.read())]
-
+            images = [
+                {
+                    'image': base64.encodebytes(image.read()),
+                },
+                {
+                    'image': base64.encodebytes(image.read()),
+                }
+            ]
+        # Admin can update an existing listing (PUT request)
+        data = {
+            'product': {
+                'images': images
+            },
+        }
         data['additional_price'] = 8.0
         data['characteristics'][0]['label'] = 'Updated characteristic'
         response = self.client.put(f'/listings/product/{listing_id}/', data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['additional_price'], 8.0)
+        self.assertEqual(response.data['characteristics'][0]['label'], 'Updated characteristic')
+
+        # test image has been well set
+        self.assertEqual(len(response.data['product']['images']), 2)
 
         # Admin can delete a listing (DELETE request)
         response = self.client.delete(f'/listings/product/{listing_id}/')

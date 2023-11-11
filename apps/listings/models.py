@@ -74,7 +74,7 @@ class Product(models.Model):
         _("Product Type"), choices=ProductType.choices, default=ProductType.OTHER
     )
     manufacturer = models.CharField(_("Manufacturer"), max_length=112)
-    images = models.ManyToManyField(Image, verbose_name=_("Product Images"), blank=True, null=True)
+    images = models.ManyToManyField(Image, verbose_name=_("Product Images"), default=None, blank=True)
     stock = models.IntegerField(_("Stock"), default=0)
     is_available = models.BooleanField(_("Is available"), default=True)
     price = models.FloatField(_("Price"))

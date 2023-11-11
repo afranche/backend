@@ -1,29 +1,44 @@
+import base64
 import re
-from uuid import uuid4
 from django.core.management.base import BaseCommand
+from django.core.files.base import ContentFile
 import requests
 import pandas as pd
 import io
 
 from apps.listings.models import Category, Image, Product, Listing, Characteristic
-from apps.listings.views import decode_base64_file
+from settings.settings import env
+
+BEEN_THROUGH_BREAKPOINT = False
 
 def download_image_from_drive(link: str) -> Image | None:
-    # Extract file ID from the Google Drive link
     file_id = link.split('/')[-2]
+    import requests
+    cookies = {}
 
-    # Construct the download link
-    download_link = f'https://drive.google.com/uc?id={file_id}'
 
-    # Fetch the image content
-    response = requests.get(download_link)
 
-    if response.status_code == 200:
-        base64_image = decode_base64_file({'image': response.text, 'name': uuid4().__str__()})
-        return Image.objects.create(image=base64_image)
-    else:
-        # Handle the case where the image couldn't be fetched
-        return None
+    headers = {
+    'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.5',
+    # 'Accept-Encoding': 'gzip, deflate, br',
+    'Alt-Used': 'drive.usercontent.google.com',
+    'Connection': 'keep-alive',
+    'Upgrade-Insecure-Requests': '1',
+    'Sec-Fetch-Dest': 'iframe',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Site': 'same-site',
+    # Requests doesn't support trailers
+    # 'TE': 'trailers',
+    }
+
+    response = requests.get(
+        f'https://drive.usercontent.google.com/download?id={file_id}&export=download&authuser=0&confirm=t&uuid=acb6681e-4160-4f9e-8f2a-2cf6988e8542&at=APZUnTV8v6IJON8znqfEl3jjnjR_:1699729320793',
+        cookies=cookies,
+        headers=headers,
+    )
+    return Image.objects.create(image=ContentFile(response.content))
 
 class Command(BaseCommand):
     def handle(self, *_, **__):
@@ -46,6 +61,7 @@ class Command(BaseCommand):
         print(Listing.objects.all())
 
     def create_listings(self, df: pd.DataFrame) -> None:
+
         for _, row in df.iterrows():
             product = Product.objects.create(
                 name=row['name'],
@@ -61,6 +77,9 @@ class Command(BaseCommand):
                 if image.strip() == "":
                     continue
                 product.images.add(download_image_from_drive(image.strip()))
+                if BEEN_THROUGH_BREAKPOINT is False:
+                    BEEN_THROUGH_BREAKPOINT = True
+                    breakpoint()
 
             product.save()
             listing = Listing(product=product)
