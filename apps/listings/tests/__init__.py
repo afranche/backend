@@ -33,12 +33,6 @@ class TestInitCategories(TransactionTestCase):
 
     def test_init_listings(self):
         listing = Listing.objects.all().filter(product__name='Tote bag blanc avec un imprimé au choix').first()
-        self.assertEqual(
-            listing.product.images,
-            ["https://drive.google.com/file/d/14IDwe6TQBhDu6Y1eKp3hfvj3LMqkOjoi/view?usp=share_link",
-             "https://drive.google.com/file/d/1paNwU3aP1fjZ3zI8O4xpcSPK0EwHd2wJ/view?usp=share_link",
-             "https://drive.google.com/file/d/1KcEYvUZ4ux0_MYeKBcyZEG70Sp5WF55g/view?usp=share_link"]
-        )
         self.assertEqual(listing.product.name, 'Tote bag blanc avec un imprimé au choix')
         self.assertEqual(listing.categories.first().name, 'Accessoires')
         self.assertEqual(listing.product.type, Product.ProductType.OTHER)

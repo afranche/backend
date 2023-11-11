@@ -1,3 +1,5 @@
+import base64
+import os
 from rest_framework.test import APITestCase
 from rest_framework import status
 
@@ -22,6 +24,7 @@ class ListingViewSetTestCase(APITestCase):
         self.listing1.categories.add(self.category1)
         self.listing1.save()
         self.listing2 = Listing.objects.create(product=product2, additional_price=15.0)
+        self.absolute_path = os.path.abspath("./apps/listings/tests/images/category_hero.png")
 
     def tearDown(self) -> None:
         self.client_user.delete()
@@ -49,8 +52,10 @@ class ListingViewSetTestCase(APITestCase):
                 {'label': 'Characteristic 1', 'type': 'input'},
                 {'label': 'Pick a color', 'type': 'choices', 'choices': ['red', 'green', 'blue']}
             ],
-            'categories': [{"id": self.category1.id}]
+            'categories': [{"id": self.category1.id}],
         }
+        with open(self.absolute_path, 'rb') as image:
+            data['images'] = [ base64.encodebytes(image.read()), base64.encodebytes(image.read())]
 
         # Try to create a new listing (POST request)
         response = self.client.post('/listings/product/', data, format='json')
@@ -75,7 +80,7 @@ class ListingViewSetTestCase(APITestCase):
                 {'label': 'Characteristic 1', 'type': 'input'},
                 {'label': 'Pick a color', 'type': 'choices', 'choices': ['red', 'green', 'blue']}
             ],
-            'categories': [{"id": self.category1.id}]
+            'categories': [{"id": self.category1.id}],
         }
 
         # Admin can create a new listing (POST request)
@@ -85,6 +90,9 @@ class ListingViewSetTestCase(APITestCase):
         listing_id = response.data['id']
 
         # Admin can update an existing listing (PUT request)
+        with open(self.absolute_path, 'rb') as image:
+            data['images'] = [base64.encodebytes(image.read()), base64.encodebytes(image.read())]
+
         data['additional_price'] = 8.0
         data['characteristics'][0]['label'] = 'Updated characteristic'
         response = self.client.put(f'/listings/product/{listing_id}/', data, format='json')

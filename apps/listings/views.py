@@ -1,16 +1,22 @@
 import base64
+from uuid import uuid4
 from rest_framework import viewsets, generics
 from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
 
 from apps.listings.pagination import CategoryPagination, ListingPagination
 from apps.users.permissions import IsAdminOrReadOnly
-from .serializers import CategorySerializer, ListingSerializer
+from .serializers import CategorySerializer, ListingSerializer, AtomicListingSerializer
 from .models import Category, Listing
 
 
 def decode_base64_file(data):
     # check if data is base64 encoded
     image = data.get('image')
+
+    if isinstance(image, InMemoryUploadedFile) or isinstance(image, TemporaryUploadedFile):
+        return image
+
     if not image.startswith('data:image'):
         return None
 
@@ -43,15 +49,15 @@ class ListingViewSet(viewsets.ModelViewSet):
     pagination_class = ListingPagination
 
     def create(self, request, *args, **kwargs):
-        images = request.data.getlist('images')
-        images_b64 = [decode_base64_file(image) for image in images]
-        request.data.setlist('images', images_b64)
+        images = request.data.get('images')
+        if images:
+            request.data['images'] = [decode_base64_file({"image": image, "name": uuid4().__str__()}) for image in images]
         return super().create(request, *args, **kwargs)
     
     def update(self, request, *args, **kwargs):
-        images = request.data.getlist('images')
-        images_b64 = [decode_base64_file(image) for image in images]
-        request.data.setlist('images', images_b64)
+        images = request.data.get('images')
+        if images:
+            request.data['images'] = [decode_base64_file({"image": image, "name": uuid4().__str__()}) for image in images]
         return super().update(request, *args, **kwargs)
 
     def get_queryset(self):
@@ -89,7 +95,7 @@ class CategoryFilterAPIView(generics.ListAPIView):
         return queryset
 
 class ListingFilterAPIView(generics.ListAPIView):
-    serializer_class = ListingSerializer
+    serializer_class = AtomicListingSerializer
     permission_classes = [IsAdminOrReadOnly]
     pagination_class = ListingPagination
 
@@ -98,8 +104,8 @@ class ListingFilterAPIView(generics.ListAPIView):
 
         filters = self.request.query_params
 
-        if 'additional_price' in filters:
-            queryset = queryset.filter(additional_price=filters['additional_price'])
+        if 'price' in filters:
+            queryset = queryset.filter(product__price=filters['price'])
 
         if 'category_name' in filters:
             queryset = queryset.filter(categories__name__icontains=filters['category_name'])
@@ -107,7 +113,4 @@ class ListingFilterAPIView(generics.ListAPIView):
         if 'name' in filters:
             queryset = queryset.filter(product__name__icontains=filters['name'])
         
-        if 'description' in filters:
-            queryset = queryset.filter(product__description__icontains=filters['description'])
-
         return queryset
