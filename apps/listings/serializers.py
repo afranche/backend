@@ -1,13 +1,37 @@
 # Serializers for Category Model, Product Model
 
+import base64
+from uuid import uuid4
 import warnings
 from rest_framework import serializers
 from .models import Category, Product, Characteristic, Listing
+from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
+
+def decode_base64_file(image, name=None):
+
+    if isinstance(image, InMemoryUploadedFile) or isinstance(image, TemporaryUploadedFile) \
+        or isinstance(image, ContentFile):
+        return image
+    # Decode the base64 image data
+    if image.startswith('data:image/'):
+        image_data = base64.b64decode(image.split(',')[1])
+    else:
+        image_data = base64.b64decode(image)
+    return ContentFile(image_data, name=name if name else f'product-{uuid4().__str__()}.png')
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = '__all__'
+
+    def validate(self, attrs):
+        if 'image' in attrs:
+            image_data = attrs.pop('image')
+            if image_data:
+                image = decode_base64_file(image_data)
+                attrs['image'] = image
+        return super().validate(attrs)
 
 class AtomicCategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -25,6 +49,15 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = ['id', 'name', 'manufacturer', 'price', 'weight', 'conservation', 'lang', 'images', 'description']
+
+    def validate(self, attrs):
+        if 'images' in attrs:
+            images_data = attrs.pop('images')
+            for image_data in images_data:
+                image = decode_base64_file(image_data)
+                attrs['images'].append(image)
+        return super().validate(attrs)
+
 
 class AtomicListingSerializer(serializers.ModelSerializer):
 
@@ -54,19 +87,10 @@ class ListingSerializer(serializers.ModelSerializer):
         model = Listing
         fields = '__all__'
 
-    def to_representation(self, instance):
-        representation = super().to_representation(instance)
-        representation['product'] = ProductSerializer(instance.product).data
-        representation['characteristics'] = CharacteristicSerializer(instance.characteristics, many=True).data
-        representation['categories'] = CategorySerializer(instance.categories, many=True).data
-        warnings.warn(f'representation: {representation}')
-        return representation
-
     def create(self, validated_data):
         characteristics_data = validated_data.pop('characteristics')
         categories_data = validated_data.pop('categories')
         product_data = validated_data.pop('product')
-        images_data = product_data.pop('images', [])
 
         product, created = Product.objects.get_or_create(**product_data)
 
@@ -86,6 +110,7 @@ class ListingSerializer(serializers.ModelSerializer):
         return listing
 
     def update(self, instance, validated_data):
+        warnings.warn(f'validated_data: {validated_data}')
         instance.additional_price = validated_data.get('additional_price', instance.additional_price)
         product_data = validated_data.get('product')
     
