@@ -11,23 +11,18 @@ from .serializers import CategorySerializer, ListingSerializer, AtomicListingSer
 from .models import Category, Listing
 
 
-def decode_base64_file(data):
-
-    # check if data is base64 encoded
-    image = data.get('image')
-    name = data.get('name', uuid4().__str__() + '-cover.png')
+def decode_base64_file(image, name=None):
 
     if isinstance(image, InMemoryUploadedFile) or isinstance(image, TemporaryUploadedFile) \
         or isinstance(image, ContentFile):
         return image
-
-    if not image.startswith('data:image'):
-        return ContentFile(image, name=name)
-
     # Decode the base64 image data
     try:
-        image_data = base64.b64decode(image.split(',')[1])
-        return ContentFile(image_data, name=name)
+        if image.startswith('data:image/'):
+            image_data = base64.b64decode(image.split(',')[1])
+        else:
+            image_data = base64.b64decode(image)
+        return ContentFile(image_data, name=name if name else f'product-{uuid4().__str__()}.png')
     except Exception as e:
         return None
 
@@ -38,11 +33,11 @@ class CategoryViewSet(viewsets.ModelViewSet):
     pagination_class = CategoryPagination
 
     def create(self, request, *args, **kwargs):
-        request.data['image'] = decode_base64_file(request.data)
+        request.data['image'] = decode_base64_file(request.data['image'])
         return super().create(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):
-        request.data['image'] = decode_base64_file(request.data)
+        request.data['image'] = decode_base64_file(request.data['image'])
         return super().update(request, *args, **kwargs)
 
 
@@ -52,42 +47,27 @@ class ListingViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrReadOnly]
     pagination_class = ListingPagination
 
-    def perform_create(self, serializer):
-        serializer.save()  # Call serializer.save() to create and save the object
 
     def create(self, request, *args, **kwargs):
         product_data = request.data.get('product', {})
         images = product_data.get('images', [])
-        
-        if images:
-            product_data['images'] = [
-                {"image": decode_base64_file(image)} for image in images
-            ]
-        
+
+        # Decode and store the images
+        decoded_images = [decode_base64_file(image) for image in images]
+        # Update the product_data with image URLs
+        product_data['images'] = decoded_images
         request.data['product'] = product_data
         warnings.warn(f'request.data: {request.data}')
-        serializer = self.get_serializer(data=request.data)
-        try:
-            serializer.is_valid(raise_exception=True)
-        except Exception as e:
-            warnings.warn(f'Exception: {e}')
-            warnings.warn(f'serializer.errors: {serializer.errors}')
-            warnings.warn(f'serializer.initial_data: {serializer.initial_data}')
-
-        warnings.warn(f'serializer.Data: {serializer.data}')
-        self.perform_create(serializer)
         return super().create(request, *args, **kwargs)
+    
 
     def update(self, request, *args, **kwargs):
         product_data = request.data.get('product', {})
         images = product_data.get('images', [])
-
-        if images:
-            product_data['images'] = [
-                {"image": decode_base64_file(image)} for image in images
-            ]
-
-        request.data['product'] = product_data
+        warnings.warn(f'images: {len(images)}')
+        # Decode and store the images
+        decoded_images = [decode_base64_file(image) for image in images]
+        request.data['product']['images'] = decoded_images
         return super().update(request, *args, **kwargs)
 
     def get_queryset(self):

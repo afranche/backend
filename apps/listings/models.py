@@ -1,20 +1,19 @@
-from collections.abc import Iterable
-from uuid import uuid4
 from django.db import models
 from django.utils.translation import gettext as _
 from django.utils.text import slugify
 from django.contrib.postgres.fields import ArrayField
-import base64
-from django.core.files.base import ContentFile
 
 import pycountry
+
+from settings.settings import CATEGORY_FOLDER_NAME, PRODUCT_FOLDER_NAME
+
     
 LANGUAGE_CHOICES = ((language.alpha_3, _(language.name)) for language in pycountry.languages)  # type: ignore
 
 class Category(models.Model):
     name = models.CharField(blank=True, null=True, max_length=100)
     description = models.TextField(blank=True, null=True)
-    image = models.FileField(upload_to='categories_cover/', blank=True, null=True, max_length=512)
+    image = models.FileField(upload_to=CATEGORY_FOLDER_NAME, blank=True, null=True, max_length=512)
     slug = models.SlugField(blank=True, null=True, unique=True, max_length=100, allow_unicode=True)
     parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True, null=True, related_name='children')
     language = models.CharField(_("Language"), max_length=3, choices=LANGUAGE_CHOICES, default='fra')
@@ -61,9 +60,6 @@ class Characteristic(models.Model):
         return super().save(*args, **kwargs)
 
 
-class Image(models.Model):
-    image = models.FileField(upload_to='products_images/', blank=True, null=True)
-
 
 class Product(models.Model):
     class ProductType(models.IntegerChoices):
@@ -74,7 +70,7 @@ class Product(models.Model):
         _("Product Type"), choices=ProductType.choices, default=ProductType.OTHER
     )
     manufacturer = models.CharField(_("Manufacturer"), max_length=112)
-    images = models.ManyToManyField(Image, verbose_name=_("Product Images"), default=None, blank=True)
+    images = ArrayField(models.FileField(upload_to=PRODUCT_FOLDER_NAME), blank=True, default=list)
     stock = models.IntegerField(_("Stock"), default=0)
     is_available = models.BooleanField(_("Is available"), default=True)
     price = models.FloatField(_("Price"))
@@ -98,12 +94,12 @@ class Product(models.Model):
 
 class Listing(models.Model):
 
-    characteristics = models.ManyToManyField(Characteristic, verbose_name=_("Listing Characteristics"))
+    characteristics = models.ManyToManyField(Characteristic, verbose_name=_("Listing Characteristics"), blank=True)
     additional_price = models.FloatField(_("Additional price for that listing"), default=0.0)
     product = models.ForeignKey(
         Product, on_delete=models.CASCADE, verbose_name=_("Product")
     )
-    categories = models.ManyToManyField(Category)
+    categories = models.ManyToManyField(Category, verbose_name=_("Listing Categories"), blank=True)
 
     def __str__(self):
         return f'{self.product} - Category: {self.categories} - Characteristics: {self.characteristics}'

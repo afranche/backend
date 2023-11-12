@@ -48,14 +48,7 @@ class ListingViewSetTestCase(APITestCase):
 
 
         with open(self.absolute_path, 'rb') as image:
-            images = [
-                {
-                    'image': base64.encodebytes(image.read()),
-                },
-                {
-                    'image': base64.encodebytes(image.read()),
-                }
-            ]
+            images = [base64.encodebytes(image.read()), base64.encodebytes(image.read()),]
 
         data = {
             'product': {
@@ -104,29 +97,22 @@ class ListingViewSetTestCase(APITestCase):
         listing_id = response.data['id']
 
         with open(self.absolute_path, 'rb') as image:
-            images = [
-                {
-                    'image': base64.encodebytes(image.read()),
-                },
-                {
-                    'image': base64.encodebytes(image.read()),
-                }
+            images = [base64.encodebytes(image.read()), base64.encodebytes(image.read()),
             ]
         # Admin can update an existing listing (PUT request)
-        data = {
-            'product': {
-                'images': images
-            },
-        }
+        data['product']['images'] = images
         data['additional_price'] = 8.0
         data['characteristics'][0]['label'] = 'Updated characteristic'
+
         response = self.client.put(f'/listings/product/{listing_id}/', data, format='json')
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['additional_price'], 8.0)
         self.assertEqual(response.data['characteristics'][0]['label'], 'Updated characteristic')
 
         # test image has been well set
         self.assertEqual(len(response.data['product']['images']), 2)
+        self.assertTrue(response.data['product']['images'][0].startswith('http'))
 
         # Admin can delete a listing (DELETE request)
         response = self.client.delete(f'/listings/product/{listing_id}/')

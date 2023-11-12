@@ -207,10 +207,11 @@ AWS_S3_SIGNATURE_VERSION="s3v4"
 os.environ.setdefault('S3_USE_SIGV4', 'True')
 FILE_UPLOAD_HANDLERS = ['django.core.files.uploadhandler.TemporaryFileUploadHandler',]
 
-STORAGES = {
-    "default": _R2_BUCKET_CONFIG,
-    "staticfiles": _R2_BUCKET_CONFIG,
-}
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+STATICFILES_STORAGE = 'storages.backends.s3boto3.S3StaticStorage'
+
+CATEGORY_FOLDER_NAME = "categories_cover/"
+PRODUCT_FOLDER_NAME = "products_images/"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
