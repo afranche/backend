@@ -108,7 +108,6 @@ class Command(BaseCommand):
                         } for choice in row[variables].split(', ') if choice != ""
                     ]
                 }
-                warnings.warn(f'data: {data}')
                 serializer = CharacteristicSerializer(data=data)
                 if serializer.is_valid():
                     characteristic = serializer.save()
@@ -116,8 +115,9 @@ class Command(BaseCommand):
                 else:
                     warnings.warn(f'Serializer errors: {serializer.errors}')
                     exit(0)
-            listing.save()
+            
             product.save()
+            listing.save()
 
 
     def create_categories(self, df: pd.DataFrame) -> None:

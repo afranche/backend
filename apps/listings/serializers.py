@@ -153,9 +153,9 @@ class AtomicListingSerializer(serializers.ModelSerializer):
         return representation
 
 class ListingSerializer(serializers.ModelSerializer):
-    product = ProductSerializer(required=False)  # Include the product details
-    characteristics = CharacteristicSerializer(many=True, required=False)
-    categories = CategorySerializer(many=True, required=False)
+    product = ProductSerializer(required=False, )  # Include the product details
+    characteristics = CharacteristicSerializer(many=True, required=False, )
+    categories = CategorySerializer(many=True, required=False, )
 
     class Meta:
         model = Listing
@@ -167,7 +167,6 @@ class ListingSerializer(serializers.ModelSerializer):
         representation['characteristics'] = CharacteristicSerializer(instance.characteristics.all(), many=True).data
         representation['categories'] = CategorySerializer(instance.categories.all(), many=True).data
         return representation
-
 
     def create(self, validated_data):
         """
@@ -182,69 +181,47 @@ class ListingSerializer(serializers.ModelSerializer):
         listing = Listing.objects.create(**validated_data, product=product)
 
         for char_data in characteristics_data:
-            choice_data = char_data.pop('choices', [])
-            choices = []
-            for choice in choice_data:
-                image_data = choice.pop('images', [])
-                images = []
-                for image in image_data:
-                    image, created = ImageModel.objects.get_or_create(**image)
-                    images.append(image)
-                variant, created = Variant.objects.get_or_create(**choice)
-                variant.images.set(images)
-                variant.save()
-                choices.append(variant)
-            char, created = Characteristic.objects.get_or_create(**char_data)
-            char.choices.set(choices)
-            char.save()
-            listing.characteristics.add(char)
+            serializer = CharacteristicSerializer(data=char_data)
+            if serializer.is_valid():
+                characteristic = serializer.save()
+                listing.characteristics.add(characteristic)
+            else:
+                warnings.warn(f'Serializer errors: {serializer.errors}')
 
         for category_data in categories_data:
-            if isinstance(category_data, int):
-                category = Category.objects.get(id=category_data)
+            serialier = CategorySerializer(data=category_data)
+            if serialier.is_valid():
+                category = serialier.save()
+                listing.categories.add(category)
             else:
-                category, created = Category.objects.get_or_create(**category_data)
-            listing.categories.add(category)
-        
+                warnings.warn(f'Serializer errors: {serialier.errors}') 
         return listing
 
     def update(self, instance, validated_data):
-        instance.additional_price = validated_data.get('additional_price', instance.additional_price)
-        product_data = validated_data.get('product')
-        if product_data:
-            product, created = Product.objects.get_or_create(**product_data)
-            instance.product = product  # Update the product
-    
-        characteristics_data = validated_data.get('characteristics')
-        categories_data = validated_data.get('categories')
-
-        if characteristics_data:
-            # Clear existing characteristics and re-add updated ones
-            instance.characteristics.clear()
+        # Use serializer to update ManyToMany fields related to Listing
+        if 'product' in validated_data:
+            serializer = ProductSerializer(data=validated_data['product'])
+            if serializer.is_valid():
+                product = serializer.update(instance.product, validated_data['product'])
+                instance.product = product
+            else:
+                warnings.warn(f'Serializer errors: {serializer.errors}')
+        if 'characteristics' in validated_data:
+            characteristics_data = validated_data.pop('characteristics')
             for char_data in characteristics_data:
-                choices = char_data.pop('choices', [])
-                char, created = Characteristic.objects.get_or_create(**char_data)
-                for choice in choices:
-                    images_data = choice.pop('images', [])
-                    images = []
-                    for image_data in images_data:
-                        image, created = ImageModel.objects.get_or_create(**image_data)
-                        images.append(image)
-                    variant, created = Variant.objects.get_or_create(**choice)
-                    variant.images.set(images)
-                    variant.save()
-                    char.choices.add(variant)
-                instance.characteristics.add(char)
-
-        if categories_data:
-            # Clear existing categories and re-add updated ones
-            instance.categories.clear()
-            for category_data in categories_data:
-                if isinstance(category_data, int):
-                    category = Category.objects.get(id=category_data)
+                serializer = CharacteristicSerializer(data=char_data)
+                if serializer.is_valid():
+                    characteristic = serializer.save()
+                    instance.characteristics.add(characteristic)
                 else:
-                    category, created = Category.objects.get_or_create(**category_data)
-                instance.categories.add(category)
-
-        instance.save()
+                    warnings.warn(f'Serializer errors: {serializer.errors}')
+        if 'categories' in validated_data:
+            categories_data = validated_data.pop('categories')
+            for category_data in categories_data:
+                serializer = CategorySerializer(data=category_data)
+                if serializer.is_valid():
+                    category = serializer.save()
+                    instance.categories.add(category)
+                else:
+                    warnings.warn(f'Serializer errors: {serializer.errors}')
         return instance
