@@ -1,62 +1,58 @@
 # Serializers for Category Model, Product Model
 
-import base64
-from uuid import uuid4
 import warnings
 from rest_framework import serializers
-from .models import Category, Product, Characteristic, Listing
-from django.core.files.base import ContentFile
-from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
+from .models import Category, ImageModel, Product, Characteristic, Listing, Variant, base64_image_to_file
 
-def decode_base64_file(image, name=None):
 
-    if isinstance(image, InMemoryUploadedFile) or isinstance(image, TemporaryUploadedFile) \
-        or isinstance(image, ContentFile):
-        return image
-    # Decode the base64 image data
-    if image.startswith('data:image/'):
-        image_data = base64.b64decode(image.split(',')[1])
-    else:
-        image_data = base64.b64decode(image)
-    return ContentFile(image_data, name=name if name else f'product-{uuid4().__str__()}.png')
+class Base64ImageField(serializers.FileField):
+    def to_internal_value (self, data) :
+        data = base64_image_to_file(data)
+        return super(Base64ImageField, self).to_internal_value(data)
+
+class ImageModelSerializer(serializers.ModelSerializer):
+    image = Base64ImageField(max_length=None, use_url=True, required=False)
+    class Meta:
+        model = ImageModel
+        fields = ['id', 'image',]
 
 class CategorySerializer(serializers.ModelSerializer):
+    image = Base64ImageField(max_length=None, use_url=True, required=False)
     class Meta:
         model = Category
         fields = '__all__'
-
-    def validate(self, attrs):
-        if 'image' in attrs:
-            image_data = attrs.pop('image')
-            if image_data:
-                image = decode_base64_file(image_data)
-                attrs['image'] = image
-        return super().validate(attrs)
 
 class AtomicCategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ['id', 'name',]
 
+class VariantSerializer(serializers.ModelSerializer):
+    images = ImageModelSerializer(many=True, required=False)
+    class Meta:
+        model = Variant
+        fields = ['id', 'name', 'images', 'description', 'stock', 'is_available']
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['images'] = ImageModelSerializer(instance.images.all(), many=True).data
+        return representation
+
 class CharacteristicSerializer(serializers.ModelSerializer):
+    choices = VariantSerializer(many=True, required=False)
     class Meta:
         model = Characteristic
         fields = '__all__'
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['choices'] = VariantSerializer(instance.choices.all(), many=True).data
+        return representation
 
 class ProductSerializer(serializers.ModelSerializer):
-    images = serializers.ListSerializer(child=serializers.CharField())
     class Meta:
         model = Product
-        fields = ['id', 'name', 'manufacturer', 'price', 'weight', 'conservation', 'lang', 'images', 'description']
-
-    def validate(self, attrs):
-        if 'images' in attrs:
-            images_data = attrs.pop('images')
-            for image_data in images_data:
-                image = decode_base64_file(image_data)
-                attrs['images'].append(image)
-        return super().validate(attrs)
+        fields = ['id', 'name', 'manufacturer', 'price', 'weight', 'conservation', 'lang', 'description']
 
 
 class AtomicListingSerializer(serializers.ModelSerializer):
@@ -79,15 +75,26 @@ class AtomicListingSerializer(serializers.ModelSerializer):
                   'categories']
 
 class ListingSerializer(serializers.ModelSerializer):
-    product = ProductSerializer()  # Include the product details
-    characteristics = CharacteristicSerializer(many=True)
-    categories = CategorySerializer(many=True)
+    product = ProductSerializer(required=False)  # Include the product details
+    characteristics = CharacteristicSerializer(many=True, required=False)
+    categories = CategorySerializer(many=True, required=False)
 
     class Meta:
         model = Listing
         fields = '__all__'
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['product'] = ProductSerializer(instance.product).data
+        representation['characteristics'] = CharacteristicSerializer(instance.characteristics.all(), many=True).data
+        representation['categories'] = CategorySerializer(instance.categories.all(), many=True).data
+        return representation
+
+
     def create(self, validated_data):
+        """
+            Not proud of this, but it works.
+        """
         characteristics_data = validated_data.pop('characteristics')
         categories_data = validated_data.pop('categories')
         product_data = validated_data.pop('product')
@@ -97,7 +104,21 @@ class ListingSerializer(serializers.ModelSerializer):
         listing = Listing.objects.create(**validated_data, product=product)
 
         for char_data in characteristics_data:
+            choice_data = char_data.pop('choices', [])
+            choices = []
+            for choice in choice_data:
+                image_data = choice.pop('images', [])
+                images = []
+                for image in image_data:
+                    image, created = ImageModel.objects.get_or_create(**image)
+                    images.append(image)
+                variant, created = Variant.objects.get_or_create(**choice)
+                variant.images.set(images)
+                variant.save()
+                choices.append(variant)
             char, created = Characteristic.objects.get_or_create(**char_data)
+            char.choices.set(choices)
+            char.save()
             listing.characteristics.add(char)
 
         for category_data in categories_data:
@@ -110,24 +131,12 @@ class ListingSerializer(serializers.ModelSerializer):
         return listing
 
     def update(self, instance, validated_data):
-        warnings.warn(f'validated_data: {validated_data}')
         instance.additional_price = validated_data.get('additional_price', instance.additional_price)
         product_data = validated_data.get('product')
-    
         if product_data:
-            product = instance.product
-            product.name = product_data.get('name', product.name)
-            product.manufacturer = product_data.get('manufacturer', product.manufacturer)
-            product.price = product_data.get('price', product.price)
-            product.weight = product_data.get('weight', product.weight)
-            product.conservation = product_data.get('conservation', product.conservation)
-            product.lang = product_data.get('lang', product.lang)
-            product.description = product_data.get('description', product.description)
-            product.stock = product_data.get('stock', product.stock)
-            product.is_available = product_data.get('is_available', product.is_available)
-            product.save()
-
-
+            product, created = Product.objects.get_or_create(**product_data)
+            instance.product = product  # Update the product
+    
         characteristics_data = validated_data.get('characteristics')
         categories_data = validated_data.get('categories')
 
@@ -135,7 +144,18 @@ class ListingSerializer(serializers.ModelSerializer):
             # Clear existing characteristics and re-add updated ones
             instance.characteristics.clear()
             for char_data in characteristics_data:
+                choices = char_data.pop('choices', [])
                 char, created = Characteristic.objects.get_or_create(**char_data)
+                for choice in choices:
+                    images_data = choice.pop('images', [])
+                    images = []
+                    for image_data in images_data:
+                        image, created = ImageModel.objects.get_or_create(**image_data)
+                        images.append(image)
+                    variant, created = Variant.objects.get_or_create(**choice)
+                    variant.images.set(images)
+                    variant.save()
+                    char.choices.add(variant)
                 instance.characteristics.add(char)
 
         if categories_data:

@@ -1,3 +1,6 @@
+import base64
+import os
+import warnings
 from rest_framework.test import APITestCase
 from rest_framework import status
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -67,16 +70,20 @@ class CategoryViewSetTestCase(APITestCase):
     
     def test_admin_can_create_update_delete_category(self):
         self.client.force_authenticate(user=self.admin_user)  # Authenticate as admin user
+        from django.contrib.sessions.models import Session
+        Session.objects.all().delete()
+        relative_path = './apps/listings/tests/images/category_hero.png'
+        absolute_path = os.path.abspath(relative_path)
 
-        # Create a SimpleUploadedFile for testing with a sample image
-        image = SimpleUploadedFile("./images/category_hero.png", b"image", content_type="image/jpeg")
+        with open(absolute_path, 'rb') as image:
+            image_data = image.read()
 
         data = {
             'name': 'Another Category',
-            'image': image,
+            'image': base64.b64encode(image_data).decode('utf-8'),
         }
 
-        response = self.client.post('/listings/category/', data, format='multipart')
+        response = self.client.post('/listings/category/', data,)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
         category = Category.objects.get(name='Another Category')
@@ -86,17 +93,24 @@ class CategoryViewSetTestCase(APITestCase):
 
     def test_retrieve_category_with_image(self):
         self.client.force_authenticate(user=self.admin_user)  # Authenticate as admin user
+        from django.contrib.sessions.models import Session
+        Session.objects.all().delete()
 
-        # Create a SimpleUploadedFile for testing with a sample image
-        image = SimpleUploadedFile("./images/category_hero.png", b"image", content_type="image/jpeg")
+        from django.conf import settings
+
+        relative_path = './apps/listings/tests/images/category_hero.png'
+        absolute_path = os.path.abspath(relative_path)
+
+        with open(absolute_path, 'rb') as image:
+            image_data = image.read()
 
         data = {
             'name': 'Category with Image',
-            'image': image,
+            'image': base64.b64encode(image_data).decode('utf-8'),
         }
 
         # Create a category with an image
-        response = self.client.post('/listings/category/', data, format='multipart')
+        response = self.client.post('/listings/category/', data, )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
         category_id = response.data['id']

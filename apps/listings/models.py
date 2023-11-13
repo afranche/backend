@@ -1,19 +1,44 @@
+from collections.abc import Iterable
+from uuid import uuid4
 from django.db import models
 from django.utils.translation import gettext as _
 from django.utils.text import slugify
 from django.contrib.postgres.fields import ArrayField
+from storages.backends.s3boto3 import S3Boto3Storage
 
 import pycountry
 
 from settings.settings import CATEGORY_FOLDER_NAME, PRODUCT_FOLDER_NAME
 
+def base64_image_to_file (image) :
+    from django.core.files.base import ContentFile
+    import base64
+    import six
+    import uuid
+
+    if 'data:' in image and ';base64,' in image :
+            header, image = image.split(';base64,')
+    decoded_image = base64.b64decode(image)
+    file_name = str(uuid.uuid4())[:12]
+    file_extension = get_file_extension(file_name, decoded_image)
+    complete_file_name = "%s.%s" % (file_name, file_extension, )
+    data = ContentFile(decoded_image, name=complete_file_name)
+    return data
+
+def get_file_extension (file_name, decoded_image) :
+    import imghdr
+
+    extension = imghdr.what(file_name, decoded_image)
+    extension = "jpg" if extension == "jpeg" else extension
+
+    return extension
     
 LANGUAGE_CHOICES = ((language.alpha_3, _(language.name)) for language in pycountry.languages)  # type: ignore
 
 class Category(models.Model):
     name = models.CharField(blank=True, null=True, max_length=100)
     description = models.TextField(blank=True, null=True)
-    image = models.FileField(upload_to=CATEGORY_FOLDER_NAME, blank=True, null=True, max_length=512)
+    image = models.ImageField(upload_to=CATEGORY_FOLDER_NAME, blank=True, null=True, max_length=512)
     slug = models.SlugField(blank=True, null=True, unique=True, max_length=100, allow_unicode=True)
     parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True, null=True, related_name='children')
     language = models.CharField(_("Language"), max_length=3, choices=LANGUAGE_CHOICES, default='fra')
@@ -30,6 +55,20 @@ class Category(models.Model):
             self.slug = slugify(self.name)
         super().save(*args, **kwargs)
 
+
+class ImageModel(models.Model):
+    image = models.ImageField(upload_to=PRODUCT_FOLDER_NAME, blank=True, null=True, max_length=512)
+    variant = models.ForeignKey('Variant', on_delete=models.CASCADE, blank=True, null=True, related_name='images')
+
+
+class Variant(models.Model):
+    stock = models.IntegerField(_("Stock"), default=0)
+    is_available = models.BooleanField(_("Is available"), default=True)
+    # variation name can be "size", "color", "material", "gender" etc.
+    name = models.CharField(_("Variation Name"), max_length=112)
+    description = models.TextField(_("Variation Description"), blank=True, default=str)
+
+
 class Characteristic(models.Model):
     """
         Characteristic is a property used to customize a product.
@@ -40,7 +79,7 @@ class Characteristic(models.Model):
         CHOICES = "choices", _("Choices")
         INPUT = "input", _("Input")
 
-    choices = ArrayField(models.CharField(_("Characteristic choices"), max_length=112), blank=True, default=list)
+    choices = models.ManyToManyField(Variant, verbose_name=_("Characteristic choices"), blank=True)
     # input = models.CharField(_("Characteristic input"), max_length=64, default="", blank=True)
     #  this is the user's choice so it should be on order apps model not here
     label = models.CharField(_("Characteristic label"), max_length=100, blank=False, default="")
@@ -52,14 +91,6 @@ class Characteristic(models.Model):
     )
     multiple_choices = models.BooleanField(_("Multiple choices"), default=False)
 
-    def save(self, *args, **kwargs) -> None:
-        if self.type == Characteristic.CharacteristicType.INPUT:
-            self.choices = []
-        else:
-            self.choices = [choice.strip() for choice in self.choices if choice.strip() != ""]
-        return super().save(*args, **kwargs)
-
-
 
 class Product(models.Model):
     class ProductType(models.IntegerChoices):
@@ -70,9 +101,6 @@ class Product(models.Model):
         _("Product Type"), choices=ProductType.choices, default=ProductType.OTHER
     )
     manufacturer = models.CharField(_("Manufacturer"), max_length=112)
-    images = ArrayField(models.FileField(upload_to=PRODUCT_FOLDER_NAME), blank=True, default=list)
-    stock = models.IntegerField(_("Stock"), default=0)
-    is_available = models.BooleanField(_("Is available"), default=True)
     price = models.FloatField(_("Price"))
     weight = models.FloatField(_("Weight in g"), blank=True, null=True, default=25)
     conservation = models.CharField(_("Conservation"), max_length=124, blank=True)
@@ -103,5 +131,3 @@ class Listing(models.Model):
 
     def __str__(self):
         return f'{self.product} - Category: {self.categories} - Characteristics: {self.characteristics}'
-
-

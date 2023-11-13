@@ -7,7 +7,9 @@ from rest_framework import viewsets, generics
 from apps.listings.pagination import CategoryPagination, ListingPagination
 from apps.users.permissions import IsAdminOrReadOnly
 from .serializers import CategorySerializer, ListingSerializer, AtomicListingSerializer
-from .models import Category, Listing
+from .models import Category, Listing, Variant
+from rest_framework import status
+from rest_framework.response import Response
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all().order_by('name')
@@ -15,12 +17,12 @@ class CategoryViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrReadOnly]
     pagination_class = CategoryPagination
 
-
 class ListingViewSet(viewsets.ModelViewSet):
     queryset = Listing.objects.all().order_by('product__name')
     serializer_class = ListingSerializer
     permission_classes = [IsAdminOrReadOnly]
     pagination_class = ListingPagination
+
 
 class CategoryFilterAPIView(generics.ListAPIView):
     serializer_class = CategorySerializer

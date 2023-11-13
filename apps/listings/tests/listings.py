@@ -4,10 +4,19 @@ import warnings
 from rest_framework.test import APITestCase
 from rest_framework import status
 
-from apps.listings.models import Listing, Product, Characteristic, Category
+from apps.listings.models import ImageModel, Listing, Product, Characteristic, Category, Variant
 from apps.users.models import Client
 
+
+absolute_path = os.path.abspath("./apps/listings/tests/images/category_hero.png")
+
 class ListingViewSetTestCase(APITestCase):
+
+    def get_image(self):
+        with open(absolute_path, 'rb') as image:
+            image_data = image.read()
+        return base64.encodebytes(image_data).decode('utf-8')
+
     def setUp(self):
         # Create a regular user
         self.client_user = Client.objects.create_user(email='client@outlook.pl', password='client_password')
@@ -19,7 +28,14 @@ class ListingViewSetTestCase(APITestCase):
         product1 = Product.objects.create(name='Product 1', manufacturer='Manufacturer 1', price=10.0)
         product2 = Product.objects.create(name='Product 2', manufacturer='Manufacturer 2', price=20.0)
         self.category1 = Category.objects.create(name='Category 1')
-        characteristic_1 = Characteristic.objects.create(label="Characteristic 1", type="input")
+
+
+        self.color_variant = Variant.objects.create(name='Blue')
+        self.color_variant.images.add(ImageModel.objects.create(image=absolute_path))
+        self.color_variant.save()
+        characteristic_1 = Characteristic.objects.create(label="Colors", type="choices")
+        characteristic_1.choices.add(self.color_variant)
+        characteristic_1.save()
         self.listing1 = Listing.objects.create(product=product1, additional_price=10.0)
         self.listing1.characteristics.add(characteristic_1)
         self.listing1.categories.add(self.category1)
@@ -45,19 +61,16 @@ class ListingViewSetTestCase(APITestCase):
     def test_client_cannot_create_update_delete_listings(self):
         # Authenticate as a regular user (client)
         self.client.force_authenticate(user=self.client_user)
-
-
-        with open(self.absolute_path, 'rb') as image:
-            images = [base64.encodebytes(image.read()), base64.encodebytes(image.read()),]
-
         data = {
             'product': {
-                'name': 'New Product', 'manufacturer': 'New Manufacturer', 'price': 20.0,
-                'images': images},
+                'name': 'New Product', 'manufacturer': 'New Manufacturer', 'price': 20.0,},
             'additional_price': 5.0,
             'characteristics': [
                 {'label': 'Characteristic 1', 'type': 'input'},
-                {'label': 'Pick a color', 'type': 'choices', 'choices': ['red', 'green', 'blue']}
+                {'label': 'Pick a color', 'type': 'choices', 'choices': [
+                    {'name': 'Blue', 'images': [{"image": self.get_image()}, {"image": self.get_image()}]},
+                    {'name': 'Red', 'images': [{"image": self.get_image()}, {"image": self.get_image()}]},
+                ]}
             ],
             'categories': [{"id": self.category1.id}],
         }
@@ -80,39 +93,49 @@ class ListingViewSetTestCase(APITestCase):
 
 
         data = {
-            'product': {'name': 'New Product', 'manufacturer': 'New Manufacturer', 'price': 20.0},
+            'product': {
+                'name': 'New Product', 'manufacturer': 'New Manufacturer', 'price': 20.0,},
             'additional_price': 5.0,
             'characteristics': [
                 {'label': 'Characteristic 1', 'type': 'input'},
-                {'label': 'Pick a color', 'type': 'choices', 'choices': ['red', 'green', 'blue']}
+                {'label': 'Pick a color', 'type': 'choices', 'choices': [
+                    {'name': 'Blue', 'images': [{"image": self.get_image()}, {"image": self.get_image()}]},
+                    {'name': 'Red', 'images': [{"image": self.get_image()}, {"image": self.get_image()}]},
+                ]}
             ],
-            'images': [],
             'categories': [{"id": self.category1.id}],
         }
+
 
         # Admin can create a new listing (POST request)
         response = self.client.post('/listings/product/', data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
+        # test image has been well set
+        self.assertEqual(len(response.data['characteristics'][1]['choices'][0]['images']), 2)
+        self.assertTrue(response.data['characteristics'][1]['choices'][0]['images'][0]['image'].startswith('http'))
+
         listing_id = response.data['id']
 
-        with open(self.absolute_path, 'rb') as image:
-            images = [base64.encodebytes(image.read()), base64.encodebytes(image.read()),
-            ]
         # Admin can update an existing listing (PUT request)
-        data['product']['images'] = images
         data['additional_price'] = 8.0
         data['characteristics'][0]['label'] = 'Updated characteristic'
+        data['characteristics'][0]['choices'] = [{
+            'name': 'Purple',
+            'images': [{"image": self.get_image()}]
+        }]
+
+        data = {
+            'additional_price': 8.0,
+            'characteristics': [
+                {'label': 'Updated characteristic', 'type': 'input'},
+            ],
+        }
 
         response = self.client.put(f'/listings/product/{listing_id}/', data, format='json')
-
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['additional_price'], 8.0)
         self.assertEqual(response.data['characteristics'][0]['label'], 'Updated characteristic')
-
-        # test image has been well set
-        self.assertEqual(len(response.data['product']['images']), 2)
-        self.assertTrue(response.data['product']['images'][0].startswith('http'))
 
         # Admin can delete a listing (DELETE request)
         response = self.client.delete(f'/listings/product/{listing_id}/')
