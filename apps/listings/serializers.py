@@ -58,11 +58,11 @@ class ProductSerializer(serializers.ModelSerializer):
 class AtomicListingSerializer(serializers.ModelSerializer):
 
     categories = AtomicCategorySerializer(many=True)
-    images = serializers.ListSerializer(child=serializers.CharField(), source='product.images')
+    images = ImageModelSerializer(many=True, required=False)
     name = serializers.CharField(source='product.name')
-    stock = serializers.IntegerField(source='product.stock')
-    is_available = serializers.BooleanField(source='product.is_available')
     price = serializers.FloatField(source='product.price')
+    stock = serializers.IntegerField()
+    is_available = serializers.BooleanField()
 
     class Meta:
         model = Listing
@@ -73,6 +73,69 @@ class AtomicListingSerializer(serializers.ModelSerializer):
                   'is_available',
                   'price',
                   'categories']
+
+    def to_representation(self, instance):
+        """
+            I don't know if it's smart, but too tired to think of something else.
+            No I think it's better to have all variants in the same listing, rather than just the first one.
+            I want to have something like this:
+            [
+                {
+                "id": 1,
+                "name": "Tote bag blanc avec un imprimé au choix",
+                "images": [
+                    "http://localhost:8000/media/listings/2021/06/01/tote-bag-blanc-avec-un-imprime-au-choix.jpg"
+                ],
+                "stock": 5,
+                "is_available": true,
+                "price": 25,
+                "attr_name": "le motif que vous voulez",
+                "categories": [
+                    {
+                    "id": 1,
+                    "name": "Accessoires"
+                    }
+                ]
+                },
+                {
+                "id": 2,
+                "name": "Tote bag blanc avec un imprimé au choix",
+                "images": [
+                    "http://localhost:8000/media/listings/2021/06/01/tote-bag-bleu.jpg"
+                ],
+                "stock": 5,
+                "is_available": true,
+                "price": 25,
+                "attr_name": "couleur bleue",
+                "categories": [
+                    {
+                    "id": 1,
+                    "name": "Accessoires"
+                    }
+                ]
+                },
+            ]
+        """
+        variants = []
+        representation = {
+            "id": instance.pk,
+            "variants": variants
+        }
+        characteristics = instance.characteristics.all()
+        for characteristic in characteristics:
+            for variant in characteristic.choices.all():
+                v = {}
+                v['id'] = variant.id
+                v['attr_name'] = variant.name
+                v['images'] = list(map(lambda x: x.image.url, variant.images.all()))
+                v['name'] = instance.product.name
+                v['price'] = instance.product.price
+                v['stock'] = variant.stock
+                v['is_available'] = variant.is_available
+                v['categories'] = AtomicCategorySerializer(instance.categories.all(), many=True).data
+                variants.append(v)
+        representation['variants'] = variants
+        return representation
 
 class ListingSerializer(serializers.ModelSerializer):
     product = ProductSerializer(required=False)  # Include the product details
