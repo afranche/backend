@@ -1,22 +1,26 @@
 import base64
+import json
 import re
+import time
+import warnings
 from django.core.management.base import BaseCommand
 from django.core.files.base import ContentFile
 import requests
 import pandas as pd
 import io
 
-from apps.listings.models import Category, Image, Product, Listing, Characteristic
+from apps.listings.models import Category, ImageModel, Product, Listing, Characteristic, Variant
+from apps.listings.serializers import CharacteristicSerializer
 from settings.settings import env
 
 BEEN_THROUGH_BREAKPOINT = False
 
-def download_image_from_drive(link: str) -> Image | None:
+with open("./.cookies.json", 'r') as f:
+    cookies = json.loads(f.read())
+
+def download_image_from_drive(link: str) -> bytes | None:
     file_id = link.split('/')[-2]
     import requests
-    cookies = {}
-
-
 
     headers = {
     'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0',
@@ -32,13 +36,14 @@ def download_image_from_drive(link: str) -> Image | None:
     # Requests doesn't support trailers
     # 'TE': 'trailers',
     }
-
+    time.sleep(4.446)
     response = requests.get(
         f'https://drive.usercontent.google.com/download?id={file_id}&export=download&authuser=0&confirm=t&uuid=acb6681e-4160-4f9e-8f2a-2cf6988e8542&at=APZUnTV8v6IJON8znqfEl3jjnjR_:1699729320793',
         cookies=cookies,
         headers=headers,
     )
-    return Image.objects.create(image=ContentFile(response.content))
+    warnings.warn(f"Response status code: {response.status_code}")
+    return ContentFile(response.content)
 
 class Command(BaseCommand):
     def handle(self, *_, **__):
@@ -72,16 +77,7 @@ class Command(BaseCommand):
                 type=Product.ProductType.FOOD if row['is food'] == 'VRAI' else Product.ProductType.OTHER,
                 conservation=row['how to conserve it'],
             )
-            product.images.set([])
-            for image in row['images'].split(' '):
-                if image.strip() == "":
-                    continue
-                product.images.add(download_image_from_drive(image.strip()))
-                if BEEN_THROUGH_BREAKPOINT is False:
-                    BEEN_THROUGH_BREAKPOINT = True
-                    breakpoint()
 
-            product.save()
             listing = Listing(product=product)
             listing.save()
             cat_name = row['sous catégorie'].strip()
@@ -93,18 +89,33 @@ class Command(BaseCommand):
                     Label: choices
             """
             for variables in ['Variable', 'Variable 2', 'Variable 3']:
-                label_1 = re.findall(r'/Couleur\:|Champ\:|Motif\:/', row['Variable'])
-                if len(label_1) == 0:
+                label = re.findall(r'/Couleur\:|Champ\:|Motif\:/', row[variables])
+                if len(label) == 0:
                     continue
                 # breakpoint()
-                label_1 = label_1[0]
-                characteristic = Characteristic.objects.create(
-                    label=row[variables].replace('Champ: ', '') if 'Champ' in label_1 else label_1,
-                    type=Characteristic.CharacteristicType.INPUT if 'Champ' in label_1 else Characteristic.CharacteristicType.CHOICES,
-                    choices=row[variables].split(', ') if 'Champ' not in label_1 else None,
-                )
-                listing.characteristics.add(characteristic)
-
+                data={
+                    'label': row[variables].replace('Champ: ', '') if 'Champ' in label[0] else label[0],
+                    'type': Characteristic.CharacteristicType.INPUT \
+                        if 'Champ' in row[variables] else Characteristic.CharacteristicType.CHOICES,
+                    'choices' : [
+                        {
+                            'name': row[variables].replace('Champ: ', '') if 'Champ' in row[variables] else choice,
+                            'images': [
+                                {
+                                    'image': download_image_from_drive(x.strip())
+                                } for x in row['images'].split(' ') if x.strip() != ""
+                            ]
+                        } for choice in row[variables].split(', ') if choice != ""
+                    ]
+                }
+                warnings.warn(f'data: {data}')
+                serializer = CharacteristicSerializer(data=data)
+                if serializer.is_valid():
+                    characteristic = serializer.save()
+                    listing.characteristics.add(characteristic)
+                else:
+                    warnings.warn(f'Serializer errors: {serializer.errors}')
+                    exit(0)
             listing.save()
             product.save()
 

@@ -1,10 +1,6 @@
-from collections.abc import Iterable
-from uuid import uuid4
 from django.db import models
 from django.utils.translation import gettext as _
 from django.utils.text import slugify
-from django.contrib.postgres.fields import ArrayField
-from storages.backends.s3boto3 import S3Boto3Storage
 
 import pycountry
 
@@ -13,17 +9,23 @@ from settings.settings import CATEGORY_FOLDER_NAME, PRODUCT_FOLDER_NAME
 def base64_image_to_file (image) :
     from django.core.files.base import ContentFile
     import base64
-    import six
-    import uuid
 
+    if isinstance(image, ContentFile):
+        if image.name is None:
+            image.name = get_filename(image.file.read())
+        return image
     if 'data:' in image and ';base64,' in image :
             header, image = image.split(';base64,')
     decoded_image = base64.b64decode(image)
-    file_name = str(uuid.uuid4())[:12]
-    file_extension = get_file_extension(file_name, decoded_image)
-    complete_file_name = "%s.%s" % (file_name, file_extension, )
-    data = ContentFile(decoded_image, name=complete_file_name)
+    data = ContentFile(decoded_image, name=get_filename(decoded_image))
     return data
+
+def get_filename(decoded_image):
+    import uuid
+    filename = str(uuid.uuid4())[:12]
+    extension = get_file_extension(filename, decoded_image)
+
+    return f"{filename}.{extension}"
 
 def get_file_extension (file_name, decoded_image) :
     import imghdr
@@ -90,6 +92,9 @@ class Characteristic(models.Model):
         blank=False,
     )
     multiple_choices = models.BooleanField(_("Multiple choices"), default=False)
+
+    def __str__(self):
+        return f'{self.label} - ({self.type})'
 
 
 class Product(models.Model):

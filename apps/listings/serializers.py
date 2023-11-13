@@ -35,7 +35,7 @@ class VariantSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        representation['images'] = ImageModelSerializer(instance.images.all(), many=True).data
+        representation['images'] = ImageModelSerializer(instance.images.all(), many=True, required=False).data
         return representation
 
 class CharacteristicSerializer(serializers.ModelSerializer):
@@ -48,6 +48,21 @@ class CharacteristicSerializer(serializers.ModelSerializer):
         representation = super().to_representation(instance)
         representation['choices'] = VariantSerializer(instance.choices.all(), many=True).data
         return representation
+    
+    def create(self, validated_data):
+        choices_data = validated_data.pop('choices', [])
+        characteristic = Characteristic.objects.create(**validated_data)
+        for choice in choices_data:
+            images_data = choice.pop('images', [])
+            images = []
+            for image_data in images_data:
+                image, created = ImageModel.objects.get_or_create(**image_data)
+                images.append(image)
+            variant, created = Variant.objects.get_or_create(**choice)
+            variant.images.set(images)
+            variant.save()
+            characteristic.choices.add(variant)
+        return characteristic
 
 class ProductSerializer(serializers.ModelSerializer):
     class Meta:
