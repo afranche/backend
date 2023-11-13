@@ -193,7 +193,7 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
-_R2_BUCKET_CONFIG = {
+R2_BUCKET_CONFIG = {
     "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
     "OPTIONS": {
         "access_key": env.str("R2_ACCESS_KEY"),
@@ -202,15 +202,18 @@ _R2_BUCKET_CONFIG = {
         "endpoint_url": env.str("R2_ENDPOINT"),
     },
 }
-
+AWS_S3_STORAGE_BUCKET_NAME = env.str("R2_BUCKET")
 AWS_S3_SIGNATURE_VERSION="s3v4"
 os.environ.setdefault('S3_USE_SIGV4', 'True')
-FILE_UPLOAD_HANDLERS = ['django.core.files.uploadhandler.TemporaryFileUploadHandler',]
 
 STORAGES = {
-    "default": _R2_BUCKET_CONFIG,
-    "staticfiles": _R2_BUCKET_CONFIG,
+    "default": R2_BUCKET_CONFIG,
+    "staticfiles": R2_BUCKET_CONFIG,
 }
+
+
+CATEGORY_FOLDER_NAME = "categories_cover/"
+PRODUCT_FOLDER_NAME = "products_images/"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
