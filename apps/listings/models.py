@@ -69,6 +69,7 @@ class Variant(models.Model):
     # variation name can be "size", "color", "material", "gender" etc.
     name = models.CharField(_("Variation Name"), max_length=112)
     description = models.TextField(_("Variation Description"), blank=True, default=str)
+    additional_price = models.FloatField(_("Additional price for that variant"), default=0.0)
 
 
 class Characteristic(models.Model):
@@ -80,6 +81,7 @@ class Characteristic(models.Model):
     class CharacteristicType(models.TextChoices):
         CHOICES = "choices", _("Choices")
         INPUT = "input", _("Input")
+        DEFAULT = "default", _("Default")
 
     choices = models.ManyToManyField(Variant, verbose_name=_("Characteristic choices"), blank=True)
     # input = models.CharField(_("Characteristic input"), max_length=64, default="", blank=True)
@@ -97,6 +99,7 @@ class Characteristic(models.Model):
         return f'{self.label} - ({self.type})'
 
 
+    
 class Product(models.Model):
     class ProductType(models.IntegerChoices):
         OTHER = 0
@@ -128,7 +131,7 @@ class Product(models.Model):
 class Listing(models.Model):
 
     characteristics = models.ManyToManyField(Characteristic, verbose_name=_("Listing Characteristics"), blank=True)
-    additional_price = models.FloatField(_("Additional price for that listing"), default=0.0)
+    additional_price = models.FloatField(_("Additional price for that listing"), default=0.0)  # TODO: to remove
     product = models.ForeignKey(
         Product, on_delete=models.CASCADE, verbose_name=_("Product")
     )
@@ -136,3 +139,4 @@ class Listing(models.Model):
 
     def __str__(self):
         return f'{self.product} - Category: {self.categories} - Characteristics: {self.characteristics}'
+

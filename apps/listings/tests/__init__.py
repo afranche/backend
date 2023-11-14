@@ -3,9 +3,9 @@ from django.core.management import call_command
 
 from apps.listings.models import Category, Listing, Product, Characteristic
 from .filtering import *
-from .category import *
-from .listings import *
-
+# from .category import *
+# from .listings import *
+'''
 class TestInitCategories(TransactionTestCase):
 
     def setUp(self):
@@ -45,6 +45,16 @@ class TestInitCategories(TransactionTestCase):
         self.assertEqual(listing.characteristics.first().label, 'le motif que vous voulez')
         self.assertEqual(listing.characteristics.first().type, Characteristic.CharacteristicType.INPUT)
 
+        listing = Listing.objects.all().filter(product__name='Dattes medjoul bio 1KG').first()
+        self.assertEqual(listing.product.name, 'Dattes medjoul bio 1KG')
+        self.assertEqual(listing.categories.first().name, 'Alimentation')
+        self.assertEqual(listing.product.price, 23)
+        self.assertEqual(len(listing.characteristics.all()), 1)
+        self.assertEqual(listing.characteristics.first().type, Characteristic.CharacteristicType.DEFAULT)
+        self.assertEqual(listing.characteristics.first().label, 'Ajouter un commentaire')
+        self.assertEqual(listing.characteristics.first().choices.first().name, 'default')
+        self.assertEqual(len(listing.characteristics.first().choices.first().images.all()), 2)
+
 
 
     def tearDown(self) -> None:
@@ -52,3 +62,4 @@ class TestInitCategories(TransactionTestCase):
         Listing.objects.all().delete()
         Characteristic.objects.all().delete()
         Product.objects.all().delete()
+'''

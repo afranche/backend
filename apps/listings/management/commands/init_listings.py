@@ -88,26 +88,46 @@ class Command(BaseCommand):
                     Champ: label
                     Label: choices
             """
+            inc = 0
             for variables in ['Variable', 'Variable 2', 'Variable 3']:
                 label = re.findall(r'/Couleur\:|Champ\:|Motif\:/', row[variables])
-                if len(label) == 0:
-                    continue
+                if len(label) == 0 and inc < 3:
+                    inc += 1
+                    if inc < 3:
+                        continue
+                if inc == 3:
+                    data={
+                        'label': "Ajouter un commentaire",
+                        'type': Characteristic.CharacteristicType.DEFAULT,
+                        'choices': [
+                            {
+                                'name': "default",
+                                'images': [
+                                    {
+                                        'image': download_image_from_drive(x.strip())
+                                    } for x in row['images'].split(' ') if x.strip() != ""
+                                ]
+                            }
+                        ]
+                    }
+
+                if len(label) > 0:
                 # breakpoint()
-                data={
-                    'label': row[variables].replace('Champ: ', '') if 'Champ' in label[0] else label[0],
-                    'type': Characteristic.CharacteristicType.INPUT \
-                        if 'Champ' in row[variables] else Characteristic.CharacteristicType.CHOICES,
-                    'choices' : [
-                        {
-                            'name': row[variables].replace('Champ: ', '') if 'Champ' in row[variables] else choice,
-                            'images': [
-                                {
-                                    'image': download_image_from_drive(x.strip())
-                                } for x in row['images'].split(' ') if x.strip() != ""
-                            ]
-                        } for choice in row[variables].split(', ') if choice != ""
-                    ]
-                }
+                    data={
+                        'label': row[variables].replace('Champ: ', '') if 'Champ' in label[0] else label[0],
+                        'type': Characteristic.CharacteristicType.INPUT \
+                            if 'Champ' in row[variables] else Characteristic.CharacteristicType.CHOICES,
+                        'choices' : [
+                            {
+                                'name': row[variables].replace('Champ: ', '') if 'Champ' in row[variables] else choice,
+                                'images': [
+                                    {
+                                        'image': download_image_from_drive(x.strip())
+                                    } for x in row['images'].split(' ') if x.strip() != ""
+                                ]
+                            } for choice in row[variables].split(', ') if choice != ""
+                        ]
+                    }
                 serializer = CharacteristicSerializer(data=data)
                 if serializer.is_valid():
                     characteristic = serializer.save()

@@ -6,6 +6,8 @@ from apps.listings.models import Category, Characteristic, ImageModel, Listing, 
 from apps.users.models import Client
 
 absolute_path = os.path.abspath("./apps/listings/tests/images/category_hero.png")
+if absolute_path and not absolute_path.startswith('/'):
+    absolute_path = '/' + absolute_path
 
 
 class BaseTestCase(APITestCase):

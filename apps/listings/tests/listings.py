@@ -75,3 +75,29 @@ class ListingViewSetTestCase(BaseTestCase):
 
         response = self.client.delete(f'/listings/product/{listing_id}/')
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_listings_without_specific_characteristics(self):
+        self.client.force_authenticate(user=self.admin_user)
+        data = {
+            'product': {
+                'name': 'New Product', 'manufacturer': 'New Manufacturer', 'price': 20.0,},
+            'additional_price': 5.0,
+            'characteristics': [
+                {'label': 'default', 'type': 'default', 'choices':[
+                    {'name': 'default',
+                     'images': [{"image": self.get_image(),}],
+                     'stock': 3,
+                     'is_available': False}
+                ]},
+            ],
+            'categories': [{"id": self.category1.id}],
+        }
+
+        response = self.client.post('/listings/product/', data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        self.assertEqual(response.data['characteristics'][0]['label'], 'default')
+        self.assertEqual(response.data['characteristics'][0]['type'], 'default')
+        self.assertEqual(response.data['characteristics'][0]['choices'][0]['name'], 'default')
+        self.assertEqual(response.data['characteristics'][0]['choices'][0]['stock'], 3)
+        self.assertEqual(response.data['characteristics'][0]['choices'][0]['is_available'], False)

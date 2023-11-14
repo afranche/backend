@@ -71,23 +71,25 @@ class ProductSerializer(serializers.ModelSerializer):
 
 
 class AtomicListingSerializer(serializers.ModelSerializer):
+    """
+        TODO: create and update won't work since variants are not serialized.
+    """
 
-    categories = AtomicCategorySerializer(many=True)
-    images = ImageModelSerializer(many=True, required=False)
+    category = AtomicCategorySerializer(required=False)
+    default_image = ImageModelSerializer(required=False)
     name = serializers.CharField(source='product.name')
     price = serializers.FloatField(source='product.price')
-    stock = serializers.IntegerField()
-    is_available = serializers.BooleanField()
+    manufacturer = serializers.CharField(source='product.manufacturer')
+    # variants = serializers.ListSerializer(child=VariantSerializer(), source='characteristics.choices')
 
     class Meta:
         model = Listing
         fields = ['id',
                   'name',
-                  'images',
-                  'stock',
-                  'is_available',
+                  'default_image',
+                  'category',
                   'price',
-                  'categories']
+                  'variants']
 
     def to_representation(self, instance):
         """
@@ -96,60 +98,89 @@ class AtomicListingSerializer(serializers.ModelSerializer):
             I want to have something like this:
             [
                 {
-                "id": 1,
-                "name": "Tote bag blanc avec un imprimé au choix",
-                "images": [
-                    "http://localhost:8000/media/listings/2021/06/01/tote-bag-blanc-avec-un-imprime-au-choix.jpg"
-                ],
-                "stock": 5,
-                "is_available": true,
-                "price": 25,
-                "attr_name": "le motif que vous voulez",
-                "categories": [
-                    {
                     "id": 1,
-                    "name": "Accessoires"
+                    "name": "Product Name",
+                    "price": 12.0,
+                    "default_image": {
+                        "id": 1,
+                        "image": "http://localhost:8000/media/..."
                     }
-                ]
-                },
-                {
-                "id": 2,
-                "name": "Tote bag blanc avec un imprimé au choix",
-                "images": [
-                    "http://localhost:8000/media/listings/2021/06/01/tote-bag-bleu.jpg"
-                ],
-                "stock": 5,
-                "is_available": true,
-                "price": 25,
-                "attr_name": "couleur bleue",
-                "categories": [
-                    {
-                    "id": 1,
-                    "name": "Accessoires"
-                    }
-                ]
-                },
+                    "category": {
+                        "id": 1,
+                        "name": "Category Name"
+                    },
+                    "manufacturer": "Manufacturer Name",
+                    "variants": [
+                        {
+                            "label": "Color",
+                            "choices": [
+                                {
+                                    "id": 1,
+                                    "attr_name": "Red",
+                                    "images": [
+                                        {
+                                            "id": 1,
+                                            "image": "http://localhost:8000/media/..."
+                                        }
+                                    ],
+                                    "price": 0.0,
+                                    "stock": 0,
+                                    "is_available": false
+                                },
+                                {
+                                    "id": 2,
+                                    "attr_name": "Blue",
+                                    "images": [
+                                        {
+                                            "id": 2,
+                                            "image": "http://localhost:8000/media/..."
+                                        }
+                                    ],
+                                    "price": 0.0,
+                                    "stock": 0,
+                                    "is_available": false
+                                }
+                            ]
+                        }
+                    ]
+                }
             ]
         """
-        variants = []
+        if not instance.characteristics.all().exists():
+            characteristic = Characteristic(label='default', type=Characteristic.CharacteristicType.DEFAULT)
+            characteristic.save()
+            characteristic.choices.set([Variant.objects.create(name='default')])
+            instance.characteristics.add(characteristic)
+            instance.save()
+        default_image = instance.characteristics.all().first().choices.first().images.first()
         representation = {
             "id": instance.pk,
-            "variants": variants
+            "name": instance.product.name,
+            "price": instance.product.price,
+            "default_image": {
+                "id": default_image.id if default_image else None,
+                "image": default_image.image.url if default_image else None,
+            },
+            "category": AtomicCategorySerializer(instance.categories.first()).data,
+            "manufacturer": instance.product.manufacturer,
+            "variants": []
         }
         characteristics = instance.characteristics.all()
         for characteristic in characteristics:
+            c = {
+                "label": characteristic.label,
+                "choices": []
+            }
             for variant in characteristic.choices.all():
                 v = {}
                 v['id'] = variant.id
                 v['attr_name'] = variant.name
-                v['images'] = list(map(lambda x: x.image.url, variant.images.all()))
-                v['name'] = instance.product.name
-                v['price'] = instance.product.price
+                v['images'] = list(map(lambda x: {"id": x.id, "image": x.image.url}, variant.images.all()))
+                v['price'] = variant.additional_price,
                 v['stock'] = variant.stock
                 v['is_available'] = variant.is_available
-                v['categories'] = AtomicCategorySerializer(instance.categories.all(), many=True).data
-                variants.append(v)
-        representation['variants'] = variants
+                c['choices'].append(v)
+        representation['variants'].append(c)
         return representation
 
 class ListingSerializer(serializers.ModelSerializer):

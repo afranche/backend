@@ -65,5 +65,8 @@ class ListingFilterAPIView(generics.ListAPIView):
 
         if 'name' in filters:
             queryset = queryset.filter(product__name__icontains=filters['name'])
+
+        if 'manufacturer' in filters:
+            queryset = queryset.filter(product__manufacturer__icontains=filters['manufacturer'])
         
         return queryset
