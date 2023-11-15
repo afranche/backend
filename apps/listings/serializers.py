@@ -31,7 +31,7 @@ class VariantSerializer(serializers.ModelSerializer):
     images = ImageModelSerializer(many=True, required=False)
     class Meta:
         model = Variant
-        fields = ['id', 'name', 'images', 'description', 'stock', 'is_available']
+        fields = ['id', 'attr_name', 'images', 'description', 'stock', 'is_available', 'additional_price']
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
@@ -123,7 +123,7 @@ class AtomicListingSerializer(serializers.ModelSerializer):
                                             "image": "http://localhost:8000/media/..."
                                         }
                                     ],
-                                    "price": 0.0,
+                                    "additional_price": 0.0,
                                     "stock": 0,
                                     "is_available": false
                                 },
@@ -136,7 +136,7 @@ class AtomicListingSerializer(serializers.ModelSerializer):
                                             "image": "http://localhost:8000/media/..."
                                         }
                                     ],
-                                    "price": 0.0,
+                                    "additional_price": 0.0,
                                     "stock": 0,
                                     "is_available": false
                                 }
@@ -149,7 +149,7 @@ class AtomicListingSerializer(serializers.ModelSerializer):
         if not instance.characteristics.all().exists():
             characteristic = Characteristic(label='default', type=Characteristic.CharacteristicType.DEFAULT)
             characteristic.save()
-            characteristic.choices.set([Variant.objects.create(name='default')])
+            characteristic.choices.set([Variant.objects.create(attr_name='default')])
             instance.characteristics.add(characteristic)
             instance.save()
         default_image = instance.characteristics.all().first().choices.first().images.first()
@@ -174,9 +174,9 @@ class AtomicListingSerializer(serializers.ModelSerializer):
             for variant in characteristic.choices.all():
                 v = {}
                 v['id'] = variant.id
-                v['attr_name'] = variant.name
+                v['attr_name'] = variant.attr_name
                 v['images'] = list(map(lambda x: {"id": x.id, "image": x.image.url}, variant.images.all()))
-                v['price'] = variant.additional_price,
+                v['additional_price'] = variant.additional_price,
                 v['stock'] = variant.stock
                 v['is_available'] = variant.is_available
                 c['choices'].append(v)

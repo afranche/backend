@@ -97,7 +97,7 @@ class Command(BaseCommand):
                         continue
                 if inc == 3:
                     data={
-                        'label': "Ajouter un commentaire",
+                        'label': "Personnalisé",
                         'type': Characteristic.CharacteristicType.DEFAULT,
                         'choices': [
                             {

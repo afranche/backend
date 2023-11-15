@@ -44,8 +44,8 @@ class ListingViewSetTestCase(BaseTestCase):
             'characteristics': [
                 {'label': 'Characteristic 1', 'type': 'input'},
                 {'label': 'Pick a color', 'type': 'choices', 'choices': [
-                    {'name': 'Blue', 'images': [{"image": self.get_image()}, {"image": self.get_image()}]},
-                    {'name': 'Red', 'images': [{"image": self.get_image()}, {"image": self.get_image()}]},
+                    {'attr_name': 'Blue', 'images': [{"image": self.get_image()}, {"image": self.get_image()}]},
+                    {'attr_name': 'Red', 'images': [{"image": self.get_image()}, {"image": self.get_image()}]},
                 ]}
             ],
             'categories': [{"id": self.category1.id}],
@@ -84,7 +84,7 @@ class ListingViewSetTestCase(BaseTestCase):
             'additional_price': 5.0,
             'characteristics': [
                 {'label': 'default', 'type': 'default', 'choices':[
-                    {'name': 'default',
+                    {'attr_name': 'default',
                      'images': [{"image": self.get_image(),}],
                      'stock': 3,
                      'is_available': False}
@@ -98,6 +98,6 @@ class ListingViewSetTestCase(BaseTestCase):
 
         self.assertEqual(response.data['characteristics'][0]['label'], 'default')
         self.assertEqual(response.data['characteristics'][0]['type'], 'default')
-        self.assertEqual(response.data['characteristics'][0]['choices'][0]['name'], 'default')
+        self.assertEqual(response.data['characteristics'][0]['choices'][0]['attr_name'], 'default')
         self.assertEqual(response.data['characteristics'][0]['choices'][0]['stock'], 3)
         self.assertEqual(response.data['characteristics'][0]['choices'][0]['is_available'], False)

@@ -20,7 +20,7 @@ class BaseTestCase(APITestCase):
         self.category1 = Category.objects.create(name='Category 1', description='Desc 1', language='eng', parent=None)
         self.category2 = Category.objects.create(name='Category 2', description='Desc 2', language='fra', parent=self.category1)
 
-        self.color_variant = Variant.objects.create(name='Blue')
+        self.color_variant = Variant.objects.create(attr_name='Blue')
         self.color_variant.images.add(ImageModel.objects.create(image=self.absolute_path))
         self.color_variant.save()
         characteristic_1 = Characteristic.objects.create(label="Colors", type="choices")

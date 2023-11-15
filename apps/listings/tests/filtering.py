@@ -60,7 +60,7 @@ class ListingFilterAPIViewTests(BaseTestCase):
         self.assertEqual(result['variants'][0]['label'], 'Colors')
         self.assertEqual(result['variants'][0]['choices'][0]['id'], self.color_variant.id)
         self.assertEqual(result['variants'][0]['choices'][0]['attr_name'], 'Blue')
-        self.assertEqual(result['variants'][0]['choices'][0]['price'], (0.0,))
+        self.assertEqual(result['variants'][0]['choices'][0]['additional_price'], (0.0,))
         self.assertEqual(result['variants'][0]['choices'][0]['stock'], 0)
         self.assertEqual(result['variants'][0]['choices'][0]['is_available'], True)
         self.assertEqual(result['variants'][0]['choices'][0]['images'][0]['id'], ImageModel.objects.first().id)
@@ -86,7 +86,7 @@ class ListingFilterAPIViewTests(BaseTestCase):
                         {
                             "id": self.color_variant.id,
                             "attr_name": "Blue",
-                            "price": 0,
+                            "additional_price": 0,
                             "stock": 0,
                             "is_available": True,
                             "images": [

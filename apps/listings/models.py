@@ -67,7 +67,7 @@ class Variant(models.Model):
     stock = models.IntegerField(_("Stock"), default=0)
     is_available = models.BooleanField(_("Is available"), default=True)
     # variation name can be "size", "color", "material", "gender" etc.
-    name = models.CharField(_("Variation Name"), max_length=112)
+    attr_name = models.CharField(_("Variation Name"), max_length=112)
     description = models.TextField(_("Variation Description"), blank=True, default=str)
     additional_price = models.FloatField(_("Additional price for that variant"), default=0.0)
 

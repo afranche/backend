@@ -3,8 +3,8 @@ from django.core.management import call_command
 
 from apps.listings.models import Category, Listing, Product, Characteristic
 from .filtering import *
-# from .category import *
-# from .listings import *
+from .category import *
+from .listings import *
 '''
 class TestInitCategories(TransactionTestCase):
 
