@@ -2,7 +2,6 @@
 
 import warnings
 from rest_framework import serializers
-<<<<<<< HEAD
 from .models import Category, Coupon, ImageModel, Product, Characteristic, Listing, Variant, base64_image_to_file
 
 
@@ -16,9 +15,6 @@ class ImageModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = ImageModel
         fields = ['id', 'image',]
-=======
-from .models import Category, Coupon, Product, Characteristic, Listing
->>>>>>> 9700c17 (wip)
 
 class CategorySerializer(serializers.ModelSerializer):
     image = Base64ImageField(max_length=None, use_url=True, required=False)
