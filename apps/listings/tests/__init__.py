@@ -1,10 +1,9 @@
-from django.test import TransactionTestCase
-from django.core.management import call_command
-
-from apps.listings.models import Category, Listing, Product, Characteristic
-from .filtering import *
 from .category import *
-from .listings import *
+from .manufacturer import *
+from .listing_create import *
+from .listing_delete import *
+from .listing_update import *
+from .listing_filters import *
 '''
 class TestInitCategories(TransactionTestCase):
 

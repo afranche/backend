@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from django.utils.translation import gettext as _
 from django.utils.text import slugify
@@ -58,85 +59,90 @@ class Category(models.Model):
         super().save(*args, **kwargs)
 
 
+
 class ImageModel(models.Model):
     image = models.ImageField(upload_to=PRODUCT_FOLDER_NAME, blank=True, null=True, max_length=512)
-    variant = models.ForeignKey('Variant', on_delete=models.CASCADE, blank=True, null=True, related_name='images')
 
-
-class Variant(models.Model):
-    stock = models.IntegerField(_("Stock"), default=0)
-    is_available = models.BooleanField(_("Is available"), default=True)
-    # variation name can be "size", "color", "material", "gender" etc.
-    attr_name = models.CharField(_("Variation Name"), max_length=112)
-    description = models.TextField(_("Variation Description"), blank=True, default=str)
-    additional_price = models.FloatField(_("Additional price for that variant"), default=0.0)
-
-
-class Characteristic(models.Model):
-    """
-        Characteristic is a property used to customize a product.
-        Ex: select between 3 colors, input a text that will appear on the product, etc.
-    """
-
-    class CharacteristicType(models.TextChoices):
-        CHOICES = "choices", _("Choices")
-        INPUT = "input", _("Input")
-        DEFAULT = "default", _("Default")
-
-    choices = models.ManyToManyField(Variant, verbose_name=_("Characteristic choices"), blank=True)
-    # input = models.CharField(_("Characteristic input"), max_length=64, default="", blank=True)
-    #  this is the user's choice so it should be on order apps model not here
-    label = models.CharField(_("Characteristic label"), max_length=100, blank=False, default="")
-    type = models.CharField(
-        _("Characteristic Type"),
-        choices=CharacteristicType.choices,
-        max_length=112,
-        blank=False,
-    )
-    multiple_choices = models.BooleanField(_("Multiple choices"), default=False)
-
-    def __str__(self):
-        return f'{self.label} - ({self.type})'
-
+class Manufacturer(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(_("First Name"), max_length=112, blank=True, null=True)
+    phone_number = models.CharField(_("Phone Number"), max_length=112, blank=True, null=True)
+    # TODO: GeoJson location coordinates
+    # location = models.PointField(_("Location"), blank=True, null=True)
+    pictures = models.ManyToManyField(ImageModel, verbose_name=_("Manufacturer Pictures"), blank=True)
+    description = models.TextField(_("Manufacturer Description"), blank=True, default=str)
 
     
+    @property
+    def default_picture(self):
+        return self.pictures.first()
+    
+    def __str__(self):
+        return f'{self.name} - {self.phone_number}'
+
 class Product(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    is_available = models.BooleanField(_("Is available"), default=True)
+    is_active = models.BooleanField(_("Is active"), default=True)
+    # {"label": "color", "value": "red"} 
+    # or {"label": "size", "value": "XL"}
+    # or for customized ones {"label": "custom", "value": "custom"} <- will be set by the client during order creation
+    characteristics = models.JSONField(_("Product Characteristics"), blank=True, null=True)
+    images = models.ManyToManyField(ImageModel, verbose_name=_("Product Pictures"), blank=True)
+    orders = models.ForeignKey("orders.Order", verbose_name=_("Orders"), blank=True, related_name='products', null=True, on_delete=models.SET_NULL)
+    is_customised = models.BooleanField(_("Is customised"), default=False)
+    is_sold = models.BooleanField(_("Is sold"), default=False)
+    sold_at = models.DateTimeField(_("Sold at"), blank=True, null=True)
+    description = models.TextField(_("Variation Description"), blank=True, default=str)
+    additional_price = models.FloatField(_("Additional price for that variant"), default=0.0)
+    listing = models.ForeignKey("Listing", verbose_name=_("Listing"), blank=True, related_name='products', null=True, on_delete=models.SET_NULL)
+
+    def delete(self, *args, **kwargs):
+        if self.is_sold:
+            self.is_active = False
+            self.images.all().delete()
+            return self.save()
+        else:
+            return super().delete(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return f'{self.characteristics.get("label", "No label")} : {self.characteristics.get("value", "No value")}'
+
+class Listing(models.Model):
     class ProductType(models.IntegerChoices):
         OTHER = 0
         FOOD = 1
-
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    categories = models.ManyToManyField(Category, verbose_name=_("Listing Categories"), blank=True)
     type = models.IntegerField(
         _("Product Type"), choices=ProductType.choices, default=ProductType.OTHER
     )
-    manufacturer = models.CharField(_("Manufacturer"), max_length=112)
-    price = models.FloatField(_("Price"))
+    manufacturer = models.ForeignKey(Manufacturer, on_delete=models.CASCADE, verbose_name=_("Manufacturer"), blank=True, null=True, default=None)
+    price = models.FloatField(_("Price"), default=0)
     weight = models.FloatField(_("Weight in g"), blank=True, null=True, default=25)
     conservation = models.CharField(_("Conservation"), max_length=124, blank=True)
     lang = models.CharField(  # type: ignore
         _("Language"), max_length=3, choices=LANGUAGE_CHOICES, default='fra'  # type: ignore
     )
-    name = models.CharField(_("Product Name"), max_length=112)
+    name = models.CharField(_("Product Name"), max_length=112, default="Unnamed Product")
     description = models.TextField(_("Product Description"), blank=True, default=str)
+    is_active = models.BooleanField(_("Is active"), default=True) 
 
     def __str__(self):
-        return f'{self.name} - {self.manufacturer} - {self.price}€, id: {self.id}'
+        return f'{self.name} - Category: {self.categories}'
+
+    @property
+    def stock(self):
+        return self.products.orders.filter(is_sold=False).count()
 
     def save(self, *args, **kwargs):
         self.name = self.name.strip()
-        self.manufacturer = self.manufacturer.strip()
         self.description = self.description.strip()
         return super().save(*args, **kwargs)
-
-
-class Listing(models.Model):
-
-    characteristics = models.ManyToManyField(Characteristic, verbose_name=_("Listing Characteristics"), blank=True)
-    additional_price = models.FloatField(_("Additional price for that listing"), default=0.0)  # TODO: to remove
-    product = models.ForeignKey(
-        Product, on_delete=models.CASCADE, verbose_name=_("Product")
-    )
-    categories = models.ManyToManyField(Category, verbose_name=_("Listing Categories"), blank=True)
-
-    def __str__(self):
-        return f'{self.product} - Category: {self.categories} - Characteristics: {self.characteristics}'
+    
+    def delete(self, *args, **kwargs):
+        self.is_active = False
+        for product in self.products.all():
+            product.delete()
+        self.save()
 
