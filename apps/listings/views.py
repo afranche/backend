@@ -1,33 +1,31 @@
-import base64
-from uuid import uuid4
-import warnings
 from rest_framework import viewsets, generics
 
+from rest_framework.permissions import IsAdminUser
 
-from apps.listings.pagination import CategoryPagination, ListingPagination
+from apps.listings.pagination import DefaultPagination
 from apps.users.permissions import IsAdminOrReadOnly
 from .serializers import CategorySerializer, ListingSerializer, AtomicListingSerializer
-from .models import Category, Listing, Variant
-from rest_framework import status
-from rest_framework.response import Response
+from .models import Category, Listing
+from .serializers import CategorySerializer, CouponSerializer, ListingSerializer
+from .models import Category, Coupon, Listing
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all().order_by('name')
     serializer_class = CategorySerializer
     permission_classes = [IsAdminOrReadOnly]
-    pagination_class = CategoryPagination
+    pagination_class = DefaultPagination
 
 class ListingViewSet(viewsets.ModelViewSet):
     queryset = Listing.objects.all().order_by('product__name')
     serializer_class = ListingSerializer
     permission_classes = [IsAdminOrReadOnly]
-    pagination_class = ListingPagination
+    pagination_class = DefaultPagination
 
 
 class CategoryFilterAPIView(generics.ListAPIView):
     serializer_class = CategorySerializer
     permission_classes = [IsAdminOrReadOnly]
-    pagination_class = CategoryPagination
+    pagination_class = DefaultPagination
 
     def get_queryset(self):
         queryset = Category.objects.all()
@@ -50,7 +48,7 @@ class CategoryFilterAPIView(generics.ListAPIView):
 class ListingFilterAPIView(generics.ListAPIView):
     serializer_class = AtomicListingSerializer
     permission_classes = [IsAdminOrReadOnly]
-    pagination_class = ListingPagination
+    pagination_class = DefaultPagination
 
     def get_queryset(self):
         queryset = Listing.objects.all()
@@ -70,3 +68,9 @@ class ListingFilterAPIView(generics.ListAPIView):
             queryset = queryset.filter(product__manufacturer__icontains=filters['manufacturer'])
         
         return queryset
+
+class CouponViewSet(viewsets.ModelViewSet):
+    queryset = Coupon.objects.all()
+    serializer_class = CouponSerializer
+    permission_classes = [IsAdminUser]
+    pagination_class = DefaultPagination

@@ -11,6 +11,11 @@ class IsAdminOrReadOnly(permissions.IsAdminUser):
         return super().has_permission(request, view)
 
 
+class IsOwnerOrAdmin(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        return obj.user == request.user or request.user.is_staff
+
+
 class ManageOnlyYourOwn(permissions.BasePermission):
     def has_permission(self, request, view):
         warnings.warn(f"{request.method}")

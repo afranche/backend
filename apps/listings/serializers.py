@@ -2,7 +2,7 @@
 
 import warnings
 from rest_framework import serializers
-from .models import Category, ImageModel, Product, Characteristic, Listing, Variant, base64_image_to_file
+from .models import Category, Coupon, ImageModel, Product, Characteristic, Listing, Variant, base64_image_to_file
 
 
 class Base64ImageField(serializers.FileField):
@@ -256,3 +256,9 @@ class ListingSerializer(serializers.ModelSerializer):
                 else:
                     warnings.warn(f'Serializer errors: {serializer.errors}')
         return instance
+
+class CouponSerializer(serializers.ModelSerializer):
+    applied_to = AtomicListingSerializer(many=True, read_only=True)  # TODO: primary key field ?
+    class Meta:
+        model = Coupon
+        fields = '__all__'

@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.translation import gettext as _
 from django.utils.text import slugify
+from django.utils import timezone
 
 import pycountry
 
@@ -115,6 +116,7 @@ class Product(models.Model):
     lang = models.CharField(  # type: ignore
         _("Language"), max_length=3, choices=LANGUAGE_CHOICES, default='fra'  # type: ignore
     )
+    is_available = models.BooleanField(_("Is available"), default=True)
     name = models.CharField(_("Product Name"), max_length=112)
     description = models.TextField(_("Product Description"), blank=True, default=str)
 
@@ -140,3 +142,18 @@ class Listing(models.Model):
     def __str__(self):
         return f'{self.product} - Category: {self.categories} - Characteristics: {self.characteristics}'
 
+
+class Coupon(models.Model):
+    code = models.CharField(_("Coupon Code"), max_length=20, unique=True, primary_key=True)
+    discount = models.FloatField(_("Discount Amount"))
+    active = models.BooleanField(_("Active"), default=True)
+    expiration_date = models.DateTimeField(_("Expiration Date"), null=True, blank=True)
+    applied_to = models.ManyToManyField(Listing, verbose_name=_("Applied to"), default=Listing.objects.all)
+
+    def is_expired(self):
+        return self.expiration_date and self.expiration_date < timezone.now()
+
+    is_expired.boolean = True  # Adding a boolean icon in the admin
+
+    def __str__(self):
+        return f"{self.code} - {self.discount}%"

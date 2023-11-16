@@ -5,7 +5,9 @@ from apps.listings.models import Category, Listing, Product, Characteristic
 from .filtering import *
 from .category import *
 from .listings import *
+from .coupons import *
 '''
+
 class TestInitCategories(TransactionTestCase):
 
     def setUp(self):
