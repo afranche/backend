@@ -1,4 +1,3 @@
-import base64
 import json
 import re
 import time
@@ -9,8 +8,8 @@ import requests
 import pandas as pd
 import io
 
-from apps.listings.models import Category, ImageModel, Product, Listing, Characteristic, Variant
-from apps.listings.serializers import CharacteristicSerializer
+from apps.listings.models import Category, Manufacturer, Product, Listing
+from apps.listings.serializers import ProductSerializer
 from settings.settings import env
 
 BEEN_THROUGH_BREAKPOINT = False
@@ -36,7 +35,7 @@ def download_image_from_drive(link: str) -> bytes | None:
     # Requests doesn't support trailers
     # 'TE': 'trailers',
     }
-    time.sleep(4.446)
+    time.sleep(0.774)
     response = requests.get(
         f'https://drive.usercontent.google.com/download?id={file_id}&export=download&authuser=0&confirm=t&uuid=acb6681e-4160-4f9e-8f2a-2cf6988e8542&at=APZUnTV8v6IJON8znqfEl3jjnjR_:1699729320793',
         cookies=cookies,
@@ -68,18 +67,23 @@ class Command(BaseCommand):
     def create_listings(self, df: pd.DataFrame) -> None:
 
         for _, row in df.iterrows():
-            product = Product.objects.create(
+
+            if row['commerçants']:
+                manufacturer, created = Manufacturer.objects.get_or_create(
+                    name=row['commerçants'],
+                    phone_number=f'+{row["manufacturer"]}')
+            else:
+                manufacturer, created = Manufacturer.objects.get_or_create(name="Unknown")
+            listing = Listing.objects.create(
                 name=row['name'],
                 description=row['description'],
                 price=row['price €'],
-                manufacturer=row['commerçants'],
                 weight=row['weight g'],
-                type=Product.ProductType.FOOD if row['is food'] == 'VRAI' else Product.ProductType.OTHER,
+                type=Listing.ProductType.FOOD if row['is food'] == 'VRAI' else Listing.ProductType.OTHER,
                 conservation=row['how to conserve it'],
+                manufacturer=manufacturer if created else None,
             )
 
-            listing = Listing(product=product)
-            listing.save()
             cat_name = row['sous catégorie'].strip()
             cat_name = cat_name if cat_name != "" else row['category'].strip()
             listing.categories.add(Category.objects.get(name=cat_name))
@@ -96,30 +100,29 @@ class Command(BaseCommand):
                     if inc < 3:
                         continue
                 if inc == 3:
-                    data={
-                        'label': "Personnalisé",
-                        'type': Characteristic.CharacteristicType.DEFAULT,
+                    data = {
                         'choices': [
                             {
-                                'name': "default",
+                                'is_customized': True,
+                                'characteristics': {"label": "Ajoutez un commentaire", "value": ""},
                                 'images': [
                                     {
                                         'image': download_image_from_drive(x.strip())
                                     } for x in row['images'].split(' ') if x.strip() != ""
                                 ]
                             }
-                        ]
+                        ],
                     }
 
                 if len(label) > 0:
                 # breakpoint()
                     data={
-                        'label': row[variables].replace('Champ: ', '') if 'Champ' in label[0] else label[0],
-                        'type': Characteristic.CharacteristicType.INPUT \
-                            if 'Champ' in row[variables] else Characteristic.CharacteristicType.CHOICES,
                         'choices' : [
                             {
-                                'name': row[variables].replace('Champ: ', '') if 'Champ' in row[variables] else choice,
+                                'characteristics': {
+                                    'label': row[variables].replace('Champ: ', '') if 'Champ' in label[0] else label[0],
+                                    'name': row[variables].replace('Champ: ', '') if 'Champ' in row[variables] else choice,
+                                },
                                 'images': [
                                     {
                                         'image': download_image_from_drive(x.strip())
@@ -128,15 +131,13 @@ class Command(BaseCommand):
                             } for choice in row[variables].split(', ') if choice != ""
                         ]
                     }
-                serializer = CharacteristicSerializer(data=data)
+                serializer = ProductSerializer(data=data)
                 if serializer.is_valid():
-                    characteristic = serializer.save()
-                    listing.characteristics.add(characteristic)
+                    serializer.save()
                 else:
                     warnings.warn(f'Serializer errors: {serializer.errors}')
                     exit(0)
             
-            product.save()
             listing.save()
 
 
