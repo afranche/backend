@@ -63,14 +63,12 @@ class ListingViewSet(viewsets.ModelViewSet):
         
         return queryset
 
-    def list(self, request, *args, **kwargs):
+    def get_serializer_class(self):
+        # if groubpy is in request query params, then serializer should be ListingGroupByLabelSeriazlizer
         groupby = self.request.query_params.get('group_by', None)
-        if not groupby:
-            return super().list(request, *args, **kwargs)
         if groupby == 'characteristics__label':
-            serializer = ListingGroupByLabelSeriazlizer(self.get_queryset(), many=True)
-            return Response(serializer.data)
-        return super().list(request, *args, **kwargs)
+            return ListingGroupByLabelSeriazlizer
+        return self.serializer_class
     
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

@@ -1,5 +1,6 @@
 # Serializers for Category Model, Product Model
 
+import functools
 import warnings
 from rest_framework import serializers
 from .models import Category, ImageModel, Manufacturer, Product, Listing, base64_image_to_file
@@ -222,13 +223,12 @@ class ListingGroupByLabelSeriazlizer(BaseListingSerializer):
                     "description": "Product Description",
                     "default_image": { "id": 1, "image": "http://localhost:8000/media/..."},
                     "manufacturer": "L'Oréal",
-                    "variants": [
+                    "variants":
                         {
-                            "id": 1,
-                            "label": "Color",
-                            "choices": [
+                            "Color": [
                                 {
                                     "id": 1,
+                                    "label": "Color",
                                     "value": "Red",
                                     "images": [
                                         {
@@ -238,11 +238,11 @@ class ListingGroupByLabelSeriazlizer(BaseListingSerializer):
                                     ],
                                     "additional_price": 0.0,
                                     "stock": 0,
-                                    "is_customized": false,
                                     "is_available": false
                                 },
                                 {
                                     "id": 2,
+                                    "label": "Color",
                                     "value": "Blue",
                                     "images": [
                                         {
@@ -250,13 +250,12 @@ class ListingGroupByLabelSeriazlizer(BaseListingSerializer):
                                             "image": "http://localhost:8000/media/..."
                                         }
                                     ],
-                                    "is_customized": false,
                                     "additional_price": 0.0,
                                     "stock": 0,
                                     "is_available": false
                                 }
                             ]
-                        },
+                        }   
                     ]
                 }
             ]
@@ -266,70 +265,25 @@ class ListingGroupByLabelSeriazlizer(BaseListingSerializer):
         products = Product.objects.filter(
             is_active=True,
             listing__id=instance.id
-        ).order_by('characteristics__label')\
-         .distinct('characteristics__label')
-        print("products before ser", products)
+        ).order_by('characteristics__label', 'characteristics__value') \
+         .distinct('characteristics__label', 'characteristics__value')
         products = ProductSerializer(instance=products, many=True).data
-        print("products", products)
-        variants = []
-        representation['variants'] = variants
-        print("representation", representation)
+        grouped = {}
+
+        for product in products:
+            grouped[product['characteristics']['label']].append(product) \
+                if product['characteristics']['label'] in grouped \
+                else grouped.update({product['characteristics']['label']: [product]})
+
+        print(grouped)
+        representation['variants'] = grouped
         return representation
 
     def create(self, validated_data):
-        """
-            Will receive data like this:
-            [
-                {
-                    "id": 1,
-                    "name": "Product Name",
-                    "price": 12.0,
-                    "description": "Product Description",
-                    "manufacturer": 1,
-                    "categories": [{
-                        "id": 1,
-                        "name": "Category Name"
-                    }],
-                    "variants": [
-                        {
-                            "label": "Color",
-                            "id": 1,
-                            "choices": [
-                                {
-                                    "id": 1,
-                                    "value": "Red",
-                                    "images": [
-                                        {
-                                            "id": 1,
-                                            "image": "http://localhost:8000/media/..."
-                                        }
-                                    ],
-                                    "additional_price": 0.0,
-                                    "stock": 0,
-                                    "is_available": false
-                                },
-                                {
-                                    "id": 2,
-                                    "value": "Blue",
-                                    "images": [
-                                        {
-                                            "id": 2,
-                                            "image": "http://localhost:8000/media/..."
-                                        }
-                                    ],
-                                    "additional_price": 0.0,
-                                    "stock": 0,
-                                    "is_available": false
-                                }
-                            ]
-                        } 
-                    ]
-                }
-            ]
-        """
-        variants = validated_data.pop('variants', [])
-        choices = map(lambda x: x.pop('choices', []), variants)
+        variants = validated_data.pop('variants', {})
+        products = map(lambda tuple: tuple[1], variants.items())
+        products = functools.reduce(lambda acc, curr: acc + curr, products, [])
         instance = super().create(validated_data)
-        products = self.generate_products(choices)
+        products = self.generate_products(products)
         instance.products.add(*map(lambda p: p.instance, products))
         return instance
