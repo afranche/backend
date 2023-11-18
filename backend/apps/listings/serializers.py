@@ -219,7 +219,7 @@ class OderSerializer(serializers.ModelSerializer):
 
 
 class ListingGroupByLabelSeriazlizer(BaseListingSerializer):
-    variants = serializers.ListSerializer(child=serializers.JSONField(), required=False)
+    variants = serializers.JSONField(required=False)
     class Meta:
         model = Listing
         fields = [
