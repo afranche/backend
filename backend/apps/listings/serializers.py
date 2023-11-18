@@ -276,7 +276,6 @@ class ListingGroupByLabelSeriazlizer(BaseListingSerializer):
                 if product['characteristics']['label'] in grouped \
                 else grouped.update({product['characteristics']['label']: [product]})
 
-        print(grouped)
         representation['variants'] = grouped
         return representation
 
