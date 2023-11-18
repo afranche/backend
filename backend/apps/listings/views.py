@@ -1,11 +1,11 @@
-from uuid import uuid4
-from rest_framework import viewsets, generics
+from rest_framework import viewsets
 
+from rest_framework.permissions import IsAdminUser
 
-from apps.listings.pagination import CategoryPagination, ListingPagination
+from apps.listings.pagination import CategoryPagination, DefaultPagination, ListingPagination
 from apps.users.permissions import IsAdminOrReadOnly
-from .serializers import CategorySerializer, ListingSerializer, ManufacturerSerializer
-from .models import Category, Listing, Manufacturer
+from .serializers import CategorySerializer, CouponSerializer, ListingSerializer, ManufacturerSerializer
+from .models import Category, Coupon, Listing, Manufacturer
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -74,3 +74,9 @@ class ManufacturerViewSet(viewsets.ModelViewSet):
     queryset = Manufacturer.objects.all()
     serializer_class = ManufacturerSerializer
     permission_classes = [IsAdminOrReadOnly]
+
+class CouponViewSet(viewsets.ModelViewSet):
+    queryset = Coupon.objects.all()
+    serializer_class = CouponSerializer
+    permission_classes = [IsAdminUser]
+    pagination_class = DefaultPagination

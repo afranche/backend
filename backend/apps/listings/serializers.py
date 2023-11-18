@@ -2,6 +2,10 @@
 
 import warnings
 from rest_framework import serializers
+<<<<<<< HEAD
+=======
+from .models import Category, Coupon, ImageModel, Manufacturer, Product, Listing, base64_image_to_file
+>>>>>>> 1bf7d315a37167e80f9d50a66b6a90df1cc44b81
 
 from apps.orders.models import Order
 from .models import Category, ImageModel, Manufacturer, Product, Listing, base64_image_to_file
@@ -206,3 +210,10 @@ class OderSerializer(serializers.ModelSerializer):
         model = Order
         fields = '__all__'
 
+
+class CouponSerializer(serializers.ModelSerializer):
+    applied_to = ListingSerializer(many=True, read_only=True)  # TOFIX: primary key field ?
+
+    class Meta:
+        model = Coupon
+        fields = '__all__'
