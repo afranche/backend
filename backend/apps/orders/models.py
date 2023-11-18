@@ -15,6 +15,18 @@ STATUS_CHOICES = (
         (5, _('received')),
     )
 
+import uuid
+
+
+STATUS_CHOICES = (
+        (1, _('in selection')),
+        (2, _('awaiting payment')),
+        (3, _('payed')),
+        (4, _('confirmed')),
+        (5, _('sent')),
+        (6, _('completed')),
+    )
+
 
 class Order(models.Model):
     REQUIRED_FIELDS = ['email']

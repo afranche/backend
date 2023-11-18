@@ -78,6 +78,7 @@ class BaseListingSerializer(serializers.ModelSerializer):
         model = Listing
         fields = '__all__'
 
+
     def generate_products(self, options):
         products = []
         stock = 0
