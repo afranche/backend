@@ -90,7 +90,6 @@ class Product(models.Model):
     # or for customized ones {"label": "custom", "value": "custom"} <- will be set by the client during order creation
     characteristics = models.JSONField(_("Product Characteristics"), blank=True, null=True, default=dict)
     images = models.ManyToManyField(ImageModel, verbose_name=_("Product Pictures"), blank=True)
-    orders = models.ForeignKey("orders.Order", verbose_name=_("Orders"), blank=True, related_name='products', null=True, on_delete=models.SET_NULL)
     is_customized = models.BooleanField(_("Is customized"), default=False)
     is_sold = models.BooleanField(_("Is sold"), default=False)
     sold_at = models.DateTimeField(_("Sold at"), blank=True, null=True)
@@ -98,7 +97,7 @@ class Product(models.Model):
     additional_price = models.FloatField(_("Additional price for that variant"), default=0.0)
     listing = models.ForeignKey("Listing", verbose_name=_("Listing"), blank=True, related_name='products', null=True, on_delete=models.SET_NULL)
 
-    in_order = models.ForeignKey('order.Order', blank=True, null=True, on_delete=models.PROTECT, related_name='items')
+    in_order = models.ForeignKey('orders.Order', blank=True, null=True, on_delete=models.PROTECT, related_name='items')
 
     def delete(self, *args, **kwargs):
         if self.is_sold:
