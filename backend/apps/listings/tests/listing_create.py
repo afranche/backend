@@ -84,7 +84,6 @@ class ListingCreationTests(BaseTestCase):
                     ]
         }
         response = self.client.post(self.url, data, format='json')
-        warnings.warn('response.data: ' + str(response.data))
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
         # test category

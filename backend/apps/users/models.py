@@ -70,11 +70,11 @@ class CustomUserManager(BaseUserManager):
         # Create and save a superuser with the given email and password.
         user = self.create_user(
             email,
+            is_staff=True,
             password=password,
             **extra_fields,
         )
-        user.is_staff = True
-        # user.is_admin = True
+        user.set_password(password)
         user.save(using=self._db)
         return user
 
