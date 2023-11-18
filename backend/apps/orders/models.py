@@ -1,33 +1,33 @@
 from django.db import models
 from django.utils.translation import gettext as _
+from django.contrib.postgres.fields import ArrayField
 
 import uuid
 
 
 STATUS_CHOICES = (
-        (1, _('in selection')),
-        (2, _('awaiting payment')),
-        (3, _('payed')),
-        (4, _('confirmed')),
-        (5, _('sent')),
-        (6, _('completed')),
+        (1, _('draft')),
+        (2, _('paid')),
+        (3, _('sent')),
+        (4, _('cancelled')),
+        (5, _('received')),
     )
 
 
 class Order(models.Model):
+    REQUIRED_FIELDS = ['email']
 
-    # fetch the products like so: self.items (fk in Product model)
+    #NOTE(djnn) fetch the products like so: self.items (fk in Product model)
 
-    email = models.EmailField(
-        _("email address"),
-    )
-    address = models.ForeignKey(
-        "users.Address", blank=True, null=True, on_delete=models.PROTECT
-    )
+    id = models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)
+
+    email = models.EmailField(_("email address"))
+    address = models.ForeignKey("users.Address", blank=True, null=True, on_delete=models.PROTECT)
 
     status = models.SmallIntegerField(_('status'), choices=STATUS_CHOICES, default=1)  # type: ignore
     client = models.ForeignKey('users.Client', blank=True, null=True, on_delete=models.PROTECT)
-    id = models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)
+    tracking_numbers = ArrayField(_('tracking numbers'), models.CharField(max_length=128), blank=True, null=True)
+    shipping_fee = models.FloatField(_('shipping fee'), default=0.0)  # type: ignore
 
     created_at = models.DateTimeField(_('created at'), auto_now=True)
     last_update = models.DateTimeField(_('last update'), auto_now_add=True)

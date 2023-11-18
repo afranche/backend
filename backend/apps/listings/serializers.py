@@ -200,7 +200,7 @@ class ListingSerializer(serializers.ModelSerializer):
 
 
 class OderSerializer(serializers.ModelSerializer):
-    items = ProductSerializer(many=True, read_only=True)
+    products = ProductSerializer(many=True, read_only=True, instance='products_set')
 
     class Meta:
         model = Order

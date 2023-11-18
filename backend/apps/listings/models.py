@@ -82,22 +82,24 @@ class Manufacturer(models.Model):
 
 class Product(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    is_available = models.BooleanField(_("Is available"), default=True)
-    is_active = models.BooleanField(_("Is active"), default=True)
+
+    characteristics = models.JSONField(_("Product Characteristics"), blank=True, null=True)
+    description = models.TextField(_("Variation Description"), blank=True, default=str)
+    additional_price = models.FloatField(_("Additional price for that variant"), default=0.0)
+
     # {"label": "color", "value": "red"}
     # or {"label": "size", "value": "XL"}
     # or for customized ones {"label": "custom", "value": "custom"} <- will be set by the client during order creation
-    characteristics = models.JSONField(_("Product Characteristics"), blank=True, null=True)
-    images = models.ManyToManyField(ImageModel, verbose_name=_("Product Pictures"), blank=True)
-    orders = models.ForeignKey("orders.Order", verbose_name=_("Orders"), blank=True, related_name='products', null=True, on_delete=models.SET_NULL)
     is_customised = models.BooleanField(_("Is customised"), default=False)
     is_sold = models.BooleanField(_("Is sold"), default=False)
     sold_at = models.DateTimeField(_("Sold at"), blank=True, null=True)
-    description = models.TextField(_("Variation Description"), blank=True, default=str)
-    additional_price = models.FloatField(_("Additional price for that variant"), default=0.0)
+    is_available = models.BooleanField(_("Is available"), default=True)
+    is_active = models.BooleanField(_("Is active"), default=True)
+
+    images = models.ManyToManyField(ImageModel, verbose_name=_("Product Pictures"), blank=True)
+    in_order = models.ForeignKey("orders.Order", verbose_name=_("Orders"), blank=True, related_name='products', null=True, on_delete=models.SET_NULL)
     listing = models.ForeignKey("Listing", verbose_name=_("Listing"), blank=True, related_name='products', null=True, on_delete=models.SET_NULL)
 
-    in_order = models.ForeignKey('order.Order', blank=True, null=True, on_delete=models.PROTECT, related_name='items')
 
     def delete(self, *args, **kwargs):
         if self.is_sold:
