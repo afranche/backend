@@ -2,8 +2,9 @@
 
 import warnings
 from rest_framework import serializers
-from .models import Category, ImageModel, Manufacturer, Product, Listing, base64_image_to_file
 
+from apps.orders.models import Order
+from .models import Category, ImageModel, Manufacturer, Product, Listing, base64_image_to_file
 
 class Base64ImageField(serializers.FileField):
     def to_internal_value (self, data) :
@@ -59,12 +60,12 @@ class ProductSerializer(serializers.ModelSerializer):
             if "label" not in characteristics or "value" not in characteristics:
                 raise serializers.ValidationError("characteristics must be a list of dictionaries with keys 'label' and 'value'")
         return super().validate(attrs)
-    
+
     def update(self, instance, validated_data):
         if instance.is_sold:
             return instance
         return super().update(instance, validated_data)
-    
+
 
 class ListingSerializer(serializers.ModelSerializer):
     options = serializers.ListSerializer(child=serializers.JSONField(), required=False)
@@ -160,17 +161,21 @@ class ListingSerializer(serializers.ModelSerializer):
         products = self.generate_products(options)
         instance.products.add(*map(lambda p: p.instance, products))
         return instance
-    
+
     def generate_products(self, options):
         products = []
         for option in options:
+            stock = 1
+
             if 'characteristics' not in option:
                 label = option.pop("label", "input")
                 stock = option.pop('stock', 1)
                 value = option.pop('value', "")
                 option['characteristics'] = {'label': label, 'value': value}
+
             if stock == 0:
                 stock = 1
+
             for _ in range(stock):
                 product = ProductSerializer(data=option)
                 if product.is_valid():
@@ -179,10 +184,10 @@ class ListingSerializer(serializers.ModelSerializer):
                 else:
                     warnings.warn(f'errors: {product.errors}')
         return products
-    
+
     def update(self, instance, validated_data):
         """
-            For PUT not PATCH. 
+            For PUT not PATCH.
             Current configuration doesn't allow for PATCHing the products field
         """
         if 'options' in validated_data:
@@ -192,3 +197,12 @@ class ListingSerializer(serializers.ModelSerializer):
                 product.delete()
             instance.products.add(*map(lambda p: p.instance, products))
         return super().update(instance, validated_data)
+
+
+class OderSerializer(serializers.ModelSerializer):
+    items = ProductSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Order
+        fields = '__all__'
+

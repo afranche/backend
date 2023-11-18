@@ -12,7 +12,7 @@ from django.utils.translation import gettext as _
 
 
 class Address(models.Model):
-    # TOFIX: unable to create a country in french
+    # FIXME(adina): unable to create a country in french
     COUNTRY_CHOICES = tuple((country.alpha_3, _(country.name)) for country in pycountry.countries)  # type: ignore
 
     timestamp = models.DateTimeField(
@@ -94,26 +94,23 @@ class Client(PermissionsMixin, AbstractBaseUser):
         Address, on_delete=models.SET_NULL, blank=True, null=True
     )
 
-    is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)  # type: ignore
+    is_staff = models.BooleanField(default=False, editable=False)  # type: ignore
 
     objects = CustomUserManager()
 
     @property
     def is_admin(self):
         return self.is_staff
-    
+
     @property
     def is_superuser(self):
         return self.is_staff
-    
-    @property
-    def is_active(self):
-        return True
+
 
 class MagicLinkQuerySet(models.QuerySet["MagicLink"]):
     def from_valid(self) -> MagicLinkQuerySet:
-        return self.filter(expires_at__gt=datetime.datetime.now())
+        return self.filter(expires_at__gt=datetime.datetime.now())  # type: ignore
 
     def from_expired(self):
         return self.filter(expires_at__lte=datetime.datetime.now())

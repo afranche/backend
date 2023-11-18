@@ -35,7 +35,7 @@ def get_file_extension (file_name, decoded_image) :
     extension = "jpg" if extension == "jpeg" else extension
 
     return extension
-    
+
 LANGUAGE_CHOICES = ((language.alpha_3, _(language.name)) for language in pycountry.languages)  # type: ignore
 
 class Category(models.Model):
@@ -72,11 +72,11 @@ class Manufacturer(models.Model):
     pictures = models.ManyToManyField(ImageModel, verbose_name=_("Manufacturer Pictures"), blank=True)
     description = models.TextField(_("Manufacturer Description"), blank=True, default=str)
 
-    
+
     @property
     def default_picture(self):
-        return self.pictures.first()
-    
+        return self.pictures.first()  # type: ignore
+
     def __str__(self):
         return f'{self.name} - {self.phone_number}'
 
@@ -84,7 +84,7 @@ class Product(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     is_available = models.BooleanField(_("Is available"), default=True)
     is_active = models.BooleanField(_("Is active"), default=True)
-    # {"label": "color", "value": "red"} 
+    # {"label": "color", "value": "red"}
     # or {"label": "size", "value": "XL"}
     # or for customized ones {"label": "custom", "value": "custom"} <- will be set by the client during order creation
     characteristics = models.JSONField(_("Product Characteristics"), blank=True, null=True)
@@ -97,16 +97,20 @@ class Product(models.Model):
     additional_price = models.FloatField(_("Additional price for that variant"), default=0.0)
     listing = models.ForeignKey("Listing", verbose_name=_("Listing"), blank=True, related_name='products', null=True, on_delete=models.SET_NULL)
 
+    in_order = models.ForeignKey('order.Order', blank=True, null=True, on_delete=models.PROTECT, related_name='items')
+
     def delete(self, *args, **kwargs):
         if self.is_sold:
             self.is_active = False
-            self.images.all().delete()
+            for i in self.images.all():  # type: ignore
+                i.delete()
             return self.save()
         else:
             return super().delete(*args, **kwargs)
 
     def __str__(self) -> str:
-        return f'{self.characteristics.get("label", "No label")} : {self.characteristics.get("value", "No value")}'
+        return f'{self.characteristics.get("label", "No label")} : {self.characteristics.get("value", "No value")}'  # type: ignore
+
 
 class Listing(models.Model):
     class ProductType(models.IntegerChoices):
@@ -126,7 +130,7 @@ class Listing(models.Model):
     )
     name = models.CharField(_("Product Name"), max_length=112, default="Unnamed Product")
     description = models.TextField(_("Product Description"), blank=True, default=str)
-    is_active = models.BooleanField(_("Is active"), default=True) 
+    is_active = models.BooleanField(_("Is active"), default=True)
 
     def __str__(self):
         return f'{self.name} - Category: {self.categories}'
@@ -139,10 +143,9 @@ class Listing(models.Model):
         self.name = self.name.strip()
         self.description = self.description.strip()
         return super().save(*args, **kwargs)
-    
+
     def delete(self, *args, **kwargs):
         self.is_active = False
         for product in self.products.all():
             product.delete()
         self.save()
-
