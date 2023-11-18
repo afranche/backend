@@ -1,3 +1,4 @@
+from datetime import timezone
 import uuid
 from django.db import models
 from django.utils.translation import gettext as _
@@ -146,3 +147,17 @@ class Listing(models.Model):
             product.delete()
         self.save()
 
+class Coupon(models.Model):
+    code = models.CharField(_("Coupon Code"), max_length=20, unique=True, primary_key=True)
+    discount = models.FloatField(_("Discount Amount"))
+    active = models.BooleanField(_("Active"), default=True)
+    expiration_date = models.DateTimeField(_("Expiration Date"), null=True, blank=True)
+    applied_to = models.ManyToManyField(Listing, verbose_name=_("Applied to"), default=Listing.objects.all)
+
+    def is_expired(self):
+        return self.expiration_date and self.expiration_date < timezone.now()
+
+    is_expired.boolean = True  # Adding a boolean icon in the admin
+
+    def __str__(self):
+        return f"{self.code} - {self.discount}%"

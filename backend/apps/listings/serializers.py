@@ -2,7 +2,7 @@
 
 import warnings
 from rest_framework import serializers
-from .models import Category, ImageModel, Manufacturer, Product, Listing, base64_image_to_file
+from .models import Category, Coupon, ImageModel, Manufacturer, Product, Listing, base64_image_to_file
 
 
 class Base64ImageField(serializers.FileField):
@@ -192,3 +192,9 @@ class ListingSerializer(serializers.ModelSerializer):
                 product.delete()
             instance.products.add(*map(lambda p: p.instance, products))
         return super().update(instance, validated_data)
+
+class CouponSerializer(serializers.ModelSerializer):
+    applied_to = ListingSerializer(many=True, read_only=True)  # TOFIX: primary key field ?
+    class Meta:
+        model = Coupon
+        fields = '__all__'
