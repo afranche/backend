@@ -4,7 +4,7 @@ from rest_framework import viewsets, generics
 
 from apps.listings.pagination import CategoryPagination, ListingPagination
 from apps.users.permissions import IsAdminOrReadOnly
-from .serializers import CategorySerializer, ListingSerializer, ManufacturerSerializer
+from .serializers import CategorySerializer, ListingGroupByLabelSeriazlizer, ListingSerializer, ManufacturerSerializer
 from .models import Category, Listing, Manufacturer
 from rest_framework import status
 from rest_framework.response import Response
@@ -62,6 +62,15 @@ class ListingViewSet(viewsets.ModelViewSet):
             return []
         
         return queryset
+
+    def list(self, request, *args, **kwargs):
+        groupby = self.request.query_params.get('group_by', None)
+        if not groupby:
+            return super().list(request, *args, **kwargs)
+        if groupby == 'characteristics__label':
+            serializer = ListingGroupByLabelSeriazlizer(self.get_queryset(), many=True)
+            return Response(serializer.data)
+        return super().list(request, *args, **kwargs)
     
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

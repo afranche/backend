@@ -87,10 +87,10 @@ class Product(models.Model):
     # {"label": "color", "value": "red"} 
     # or {"label": "size", "value": "XL"}
     # or for customized ones {"label": "custom", "value": "custom"} <- will be set by the client during order creation
-    characteristics = models.JSONField(_("Product Characteristics"), blank=True, null=True)
+    characteristics = models.JSONField(_("Product Characteristics"), blank=True, null=True, default=dict)
     images = models.ManyToManyField(ImageModel, verbose_name=_("Product Pictures"), blank=True)
     orders = models.ForeignKey("orders.Order", verbose_name=_("Orders"), blank=True, related_name='products', null=True, on_delete=models.SET_NULL)
-    is_customised = models.BooleanField(_("Is customised"), default=False)
+    is_customized = models.BooleanField(_("Is customized"), default=False)
     is_sold = models.BooleanField(_("Is sold"), default=False)
     sold_at = models.DateTimeField(_("Sold at"), blank=True, null=True)
     description = models.TextField(_("Variation Description"), blank=True, default=str)
@@ -106,7 +106,9 @@ class Product(models.Model):
             return super().delete(*args, **kwargs)
 
     def __str__(self) -> str:
-        return f'{self.characteristics.get("label", "No label")} : {self.characteristics.get("value", "No value")}'
+        if self.characteristics is not None:
+            return f'{self.characteristics.get("label", "No label")} {self.characteristics.get("value", "No value")}'
+        return f'Product {self.id}, sold ? {self.is_sold}'
 
 class Listing(models.Model):
     class ProductType(models.IntegerChoices):
@@ -126,7 +128,7 @@ class Listing(models.Model):
     )
     name = models.CharField(_("Product Name"), max_length=112, default="Unnamed Product")
     description = models.TextField(_("Product Description"), blank=True, default=str)
-    is_active = models.BooleanField(_("Is active"), default=True) 
+    is_active = models.BooleanField(_("Is active"), default=True)
 
     def __str__(self):
         return f'{self.name} - Category: {self.categories}'

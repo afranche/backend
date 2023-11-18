@@ -27,7 +27,7 @@ class BaseTestCase(APITestCase):
             is_available=True,
             is_active=True,
             characteristics={"label": "color", "value": "red"},
-            is_customised=False,
+            is_customized=False,
             is_sold=False,
             additional_price=5.0
         )
@@ -36,7 +36,7 @@ class BaseTestCase(APITestCase):
             is_available=True,
             is_active=True,
             characteristics={"label": "size", "value": "XL"},
-            is_customised=True,
+            is_customized=True,
             is_sold=False,
             additional_price=10.0
         )
@@ -44,7 +44,7 @@ class BaseTestCase(APITestCase):
             is_available=True,
             is_active=True,
             characteristics={"label": "size", "value": "XL"},
-            is_customised=True,
+            is_customized=True,
             is_sold=True,
             additional_price=10.0
         )

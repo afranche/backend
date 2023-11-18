@@ -57,8 +57,9 @@ class Command(BaseCommand):
         df = pd.read_csv(io.BytesIO(res.content), encoding='utf8', sep=",")
         df = self.clean_df(df)
 
-        self.create_categories(df)
-        print("Categories created.")
+        if Category.objects.count() == 0:
+            self.create_categories(df)
+            print("Categories created.")
         print(Category.objects.all())
         self.create_listings(df)
         print("Listings created.")
@@ -81,63 +82,55 @@ class Command(BaseCommand):
                 weight=row['weight g'],
                 type=Listing.ProductType.FOOD if row['is food'] == 'VRAI' else Listing.ProductType.OTHER,
                 conservation=row['how to conserve it'],
-                manufacturer=manufacturer if created else None,
+                manufacturer=manufacturer,
             )
 
             cat_name = row['sous catégorie'].strip()
             cat_name = cat_name if cat_name != "" else row['category'].strip()
             listing.categories.add(Category.objects.get(name=cat_name))
-            """
-                    It is written this way:
-                    Champ: label
-                    Label: choices
-            """
+
             inc = 0
+            pattern = r"Couleur\: |Champ\: |Motif\: |Taille\: |Couleur de l'imprimé\: |Genre\: " 
             for variables in ['Variable', 'Variable 2', 'Variable 3']:
-                label = re.findall(r'/Couleur\:|Champ\:|Motif\:/', row[variables])
-                if len(label) == 0 and inc < 3:
+                print("row[variables]", row[variables])
+                if not re.match(pattern, row[variables]):
                     inc += 1
                     if inc < 3:
                         continue
+                else:
+                    label = re.findall(pattern, row[variables])[0]
+                    print("label", label)
+                    data={
+                        'choices' : [
+                            {
+                                'characteristics': {
+                                    'label': label,
+                                    'value': '' if 'Champ' in row[variables] else choice,
+                                },
+                                'is_customized': True if 'Champ' in row[variables] else False,
+                                'images': []
+                            } for choice in re.sub(pattern, '', row[variables]).split(', ') if choice != ""
+                        ]
+                    }
                 if inc == 3:
                     data = {
                         'choices': [
                             {
                                 'is_customized': True,
                                 'characteristics': {"label": "Ajoutez un commentaire", "value": ""},
-                                'images': [
-                                    {
-                                        'image': download_image_from_drive(x.strip())
-                                    } for x in row['images'].split(' ') if x.strip() != ""
-                                ]
+                                'images': []  # deal with this later
                             }
                         ],
                     }
-
-                if len(label) > 0:
-                # breakpoint()
-                    data={
-                        'choices' : [
-                            {
-                                'characteristics': {
-                                    'label': row[variables].replace('Champ: ', '') if 'Champ' in label[0] else label[0],
-                                    'name': row[variables].replace('Champ: ', '') if 'Champ' in row[variables] else choice,
-                                },
-                                'images': [
-                                    {
-                                        'image': download_image_from_drive(x.strip())
-                                    } for x in row['images'].split(' ') if x.strip() != ""
-                                ]
-                            } for choice in row[variables].split(', ') if choice != ""
-                        ]
-                    }
-                serializer = ProductSerializer(data=data)
-                if serializer.is_valid():
-                    serializer.save()
-                else:
-                    warnings.warn(f'Serializer errors: {serializer.errors}')
-                    exit(0)
-            
+                for choice in data['choices']:
+                    serializer = ProductSerializer(data=choice)
+                    print(serializer)
+                    if serializer.is_valid():
+                        print("valid serializer")
+                        serializer.save()
+                        listing.products.add(serializer.instance) 
+                    else:
+                        print("oh no, invalid serializer", serializer.errors)
             listing.save()
 
 
