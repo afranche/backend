@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAdminUser
 
 from apps.listings.pagination import CategoryPagination, DefaultPagination, ListingPagination
 from apps.users.permissions import IsAdminOrReadOnly
-from .serializers import CategorySerializer, CouponSerializer ListingGroupByLabelSeriazlizer, ListingSerializer, ManufacturerSerializer
+from .serializers import CategorySerializer, CouponSerializer, ListingGroupByLabelSeriazlizer, ListingSerializer, ManufacturerSerializer
 from .models import Category, Listing, Manufacturer, Coupon
 from rest_framework import status
 from rest_framework.response import Response
