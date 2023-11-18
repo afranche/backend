@@ -1,3 +1,4 @@
+from math import fsum
 from django.db import models
 from django.utils.translation import gettext as _
 from django.contrib.postgres.fields import ArrayField
@@ -45,6 +46,18 @@ class Order(models.Model):
 
     created_at = models.DateTimeField(_('created at'), auto_now=True)
     last_update = models.DateTimeField(_('last update'), auto_now=True)
+
+    selected_coupon = models.ForeignKey('listings.Coupon', on_delete=models.PROTECT, blank=True, null=True, related_name='applied_to')
+
+
+    @property
+    def total_price(self) -> float:
+        full_sum = self.shipping_fee + fsum([product.additional_price + product.listing.price for product in self.products_set])
+        if not self.selected_coupon or self.selected_coupon.is_expired:
+            return full_sum
+
+        return full_sum - self.selected_coupon.discount
+
 
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
