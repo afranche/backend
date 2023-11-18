@@ -65,7 +65,6 @@ class ImageModel(models.Model):
     image = models.ImageField(upload_to=PRODUCT_FOLDER_NAME, blank=True, null=True, max_length=512)
 
 class Manufacturer(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(_("First Name"), max_length=112, blank=True, null=True)
     phone_number = models.CharField(_("Phone Number"), max_length=112, blank=True, null=True)
     # TODO: GeoJson location coordinates
@@ -91,7 +90,7 @@ class Product(models.Model):
     # {"label": "color", "value": "red"}
     # or {"label": "size", "value": "XL"}
     # or for customized ones {"label": "custom", "value": "custom"} <- will be set by the client during order creation
-    is_customised = models.BooleanField(_("Is customised"), default=False)
+    is_customized = models.BooleanField(_("Is customized"), default=False)
     is_sold = models.BooleanField(_("Is sold"), default=False)
     sold_at = models.DateTimeField(_("Sold at"), blank=True, null=True)
     is_available = models.BooleanField(_("Is available"), default=True)
@@ -112,7 +111,9 @@ class Product(models.Model):
             return super().delete(*args, **kwargs)
 
     def __str__(self) -> str:
-        return f'{self.characteristics.get("label", "No label")} : {self.characteristics.get("value", "No value")}'  # type: ignore
+        if self.characteristics is not None:
+            return f'{self.characteristics.get("label", "No label")} {self.characteristics.get("value", "No value")}'
+        return f'Product {self.id}, sold ? {self.is_sold}'
 
 
 class Listing(models.Model):

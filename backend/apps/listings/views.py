@@ -4,8 +4,8 @@ from rest_framework.permissions import IsAdminUser
 
 from apps.listings.pagination import CategoryPagination, DefaultPagination, ListingPagination
 from apps.users.permissions import IsAdminOrReadOnly
-from .serializers import CategorySerializer, CouponSerializer, ListingSerializer, ManufacturerSerializer
-from .models import Category, Coupon, Listing, Manufacturer
+from .serializers import CategorySerializer, CouponSerializer, ListingGroupByLabelSeriazlizer, ListingSerializer, ManufacturerSerializer
+from .models import Category, Listing, Manufacturer, Coupon
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -62,6 +62,13 @@ class ListingViewSet(viewsets.ModelViewSet):
             return []
         
         return queryset
+
+    def get_serializer_class(self):
+        # if groubpy is in request query params, then serializer should be ListingGroupByLabelSeriazlizer
+        groupby = self.request.query_params.get('group_by', None)
+        if groupby == 'characteristics__label':
+            return ListingGroupByLabelSeriazlizer
+        return self.serializer_class
     
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
