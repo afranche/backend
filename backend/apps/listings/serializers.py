@@ -5,6 +5,7 @@ import warnings
 from rest_framework import serializers
 from .models import Category, Coupon, ImageModel, Manufacturer, Product, Listing, base64_image_to_file
 
+from apps.orders.models import Order
 
 class Base64ImageField(serializers.FileField):
     def to_internal_value (self, data) :
@@ -60,7 +61,7 @@ class ProductSerializer(serializers.ModelSerializer):
             if "label" not in characteristics or "value" not in characteristics:
                 raise serializers.ValidationError("characteristics must be a list of dictionaries with keys 'label' and 'value'")
         return super().validate(attrs)
-    
+
     def update(self, instance, validated_data):
         if instance.is_sold:
             return instance
@@ -70,6 +71,7 @@ class BaseListingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Listing
         fields = '__all__'
+
 
     def generate_products(self, options):
         products = []
@@ -187,7 +189,7 @@ class ListingSerializer(BaseListingSerializer):
     
     def update(self, instance, validated_data):
         """
-            For PUT not PATCH. 
+            For PUT not PATCH.
             Current configuration doesn't allow for PATCHing the products field
         """
         if 'options' in validated_data:
@@ -293,5 +295,10 @@ class CouponSerializer(serializers.ModelSerializer):
     applied_to = ListingSerializer(many=True, read_only=True)  # TOFIX: primary key field ?
     class Meta:
         model = Coupon
-        fields = '__all__'
 
+class OderSerializer(serializers.ModelSerializer):
+    items = ProductSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Order
+        fields = '__all__'
