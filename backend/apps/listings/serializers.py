@@ -5,6 +5,9 @@ import warnings
 from rest_framework import serializers
 from .models import Category, Coupon, ImageModel, Manufacturer, Product, Listing, base64_image_to_file
 
+from apps.orders.models import Order
+from .models import Category, ImageModel, Manufacturer, Product, Listing, base64_image_to_file
+
 
 class Base64ImageField(serializers.FileField):
     def to_internal_value (self, data) :
@@ -13,11 +16,13 @@ class Base64ImageField(serializers.FileField):
         data = base64_image_to_file(data)
         return super().to_internal_value(data)
 
+
 class CategorySerializer(serializers.ModelSerializer):
     image = Base64ImageField(max_length=None, use_url=True, required=False)
     class Meta:
         model = Category
         fields = '__all__'
+
 
 class ImageModelSerializer(serializers.ModelSerializer):
     image = Base64ImageField(max_length=None, use_url=True, required=False)
@@ -31,6 +36,7 @@ class ManufacturerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Manufacturer
         fields = '__all__'
+
 
 class ProductSerializer(serializers.ModelSerializer):
     images = ImageModelSerializer(many=True, required=False)
@@ -60,19 +66,23 @@ class ProductSerializer(serializers.ModelSerializer):
             if "label" not in characteristics or "value" not in characteristics:
                 raise serializers.ValidationError("characteristics must be a list of dictionaries with keys 'label' and 'value'")
         return super().validate(attrs)
-    
+
     def update(self, instance, validated_data):
         if instance.is_sold:
             return instance
         return super().update(instance, validated_data)
-    
+
+
 class BaseListingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Listing
         fields = '__all__'
 
+
     def generate_products(self, options):
         products = []
+        stock = 0
+
         for option in options:
             if 'characteristics' not in option:
                 label = option.pop("label", "input")
@@ -89,6 +99,7 @@ class BaseListingSerializer(serializers.ModelSerializer):
                 else:
                     warnings.warn(f'errors: {product.errors}')
         return products
+
 
 class ListingSerializer(BaseListingSerializer):
     options = serializers.ListSerializer(child=serializers.JSONField(), required=False)
@@ -184,10 +195,10 @@ class ListingSerializer(BaseListingSerializer):
         products = self.generate_products(options)
         instance.products.add(*map(lambda p: p.instance, products))
         return instance
-    
+
     def update(self, instance, validated_data):
         """
-            For PUT not PATCH. 
+            For PUT not PATCH.
             Current configuration doesn't allow for PATCHing the products field
         """
         if 'options' in validated_data:
@@ -197,6 +208,14 @@ class ListingSerializer(BaseListingSerializer):
                 product.delete()
             instance.products.add(*map(lambda p: p.instance, products))
         return super().update(instance, validated_data)
+
+
+class OderSerializer(serializers.ModelSerializer):
+    products = ProductSerializer(many=True, read_only=True, instance='products_set')
+
+    class Meta:
+        model = Order
+        fields = '__all__'
 
 
 class ListingGroupByLabelSeriazlizer(BaseListingSerializer):
@@ -212,7 +231,7 @@ class ListingGroupByLabelSeriazlizer(BaseListingSerializer):
             'categories',
             'variants'
         ]
-    
+
     def to_representation(self, instance):
         """
             Returning data formatted like this:
@@ -256,7 +275,7 @@ class ListingGroupByLabelSeriazlizer(BaseListingSerializer):
                                     "is_available": false
                                 }
                             ]
-                        }   
+                        }
                     ]
                 }
             ]
@@ -289,9 +308,10 @@ class ListingGroupByLabelSeriazlizer(BaseListingSerializer):
         instance.products.add(*map(lambda p: p.instance, products))
         return instance
 
+
 class CouponSerializer(serializers.ModelSerializer):
-    applied_to = ListingSerializer(many=True, read_only=True)  # TOFIX: primary key field ?
+    applied_to = ListingSerializer(many=True, read_only=True)  # FIXME(adina): primary key field ?
+
     class Meta:
         model = Coupon
         fields = '__all__'
-

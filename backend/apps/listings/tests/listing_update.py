@@ -8,7 +8,6 @@ class ListingUpdateTests(BaseTestCase):
     url = "/listings/product"
     def test_update_listing_name(self):
         response = self.create_legit_listing()
-        warnings.warn(f'Listing id: {response.data["id"]}')
 
         data = {
             "name": "Updated Listing Name",
@@ -96,5 +95,5 @@ class ListingUpdateTests(BaseTestCase):
         self.assertEqual(len(response.data['products'][1]['images']), 1)
         self.assertEqual(len(response.data['products'][2]['images']), 1)
         self.assertEqual(len(response.data['products'][3]['images']), 1)
-        
+
 

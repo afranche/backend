@@ -18,6 +18,7 @@ psycopg = {extras = ["binary"], version = "^3.1.12"}
 numpy = "^1.26.1"
 pandas = "^2.1.1"
 django-storages = {extras = ["s3"], version = "^1.14.2"}
+pillow = "^10.1.0"
 
 
 [tool.poetry.group.dev.dependencies]

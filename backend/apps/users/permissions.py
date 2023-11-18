@@ -11,25 +11,22 @@ class IsAdminOrReadOnly(permissions.IsAdminUser):
         return super().has_permission(request, view)
 
 
+#FIXME(adina): tests are broken
 class ManageOnlyYourOwn(permissions.BasePermission):
     def has_permission(self, request, view):
-        warnings.warn(f"{request.method}")
-
-        if request.method == "POST" or request.user.is_staff:
-            # Allow creation (POST) for all or any action for admin users.
-            return True
-        if request.method in ["PUT", "PATCH", "DELETE"]:
-            return False  # Deny all other non-admin users for other actions (GET, PUT, DELETE).
+        return True
 
     def has_object_permission(self, request, view, obj):
-        warnings.warn(f'coucou {request.user} {obj.user}')
+
+        logging.warn(f'user {request.user} is staff ? {request.user.is_staff}')
+
         if request.user.is_staff:
-            # Admin users have full permissions on the object.
             return True
 
+        logging.warn(f'user: {request.user} == {obj} ?')
 
-            # Normal users can only update or delete their own objects.
-        warnings.warn(f'obj.user == request.user {obj.user == request.user} {obj} {obj.user} {request.user}')
-        print("obj.user == request.user", obj.user == request.user, file=sys.stderr)
-        print(obj, obj.user, request.user, file=sys.stderr)
-        return obj.user == request.user
+        if hasattr(obj, 'user'):
+            return obj.user == request.user
+
+        logging.warn(f'{type(obj)} ({obj}) does not have "user" property. Permission will never be granted')
+        return obj == request.user
