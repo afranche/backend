@@ -119,14 +119,14 @@ class Listing(models.Model):
     class ProductType(models.IntegerChoices):
         OTHER = 0
         FOOD = 1
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
     categories = models.ManyToManyField(Category, verbose_name=_("Listing Categories"), blank=True)
     type = models.IntegerField(
-        _("Product Type"), choices=ProductType.choices, default=ProductType.OTHER
+        _("Product Type"), choices=ProductType.choices, default=ProductType.OTHER  # type: ignore
     )
     manufacturer = models.ForeignKey(Manufacturer, on_delete=models.CASCADE, verbose_name=_("Manufacturer"), blank=True, null=True, default=None)
-    price = models.FloatField(_("Price"), default=0)
-    weight = models.FloatField(_("Weight in g"), blank=True, null=True, default=25)
+    price = models.FloatField(_("Price"), default=0)  # type: ignore
+    weight = models.FloatField(_("Weight in g"), blank=True, null=True, default=25)  # type: ignore
     conservation = models.CharField(_("Conservation"), max_length=124, blank=True)
     lang = models.CharField(  # type: ignore
         _("Language"), max_length=3, choices=LANGUAGE_CHOICES, default='fra'  # type: ignore
@@ -143,13 +143,13 @@ class Listing(models.Model):
         return self.products.orders.filter(is_sold=False).count()
 
     def save(self, *args, **kwargs):
-        self.name = self.name.strip()
-        self.description = self.description.strip()
+        self.name = self.name.strip()  # type: ignore
+        self.description = self.description.strip()  # type: ignore
         return super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
         self.is_active = False
-        for product in self.products.all():
+        for product in self.products.all():  # type: ignore
             product.delete()
         self.save()
 
@@ -158,7 +158,7 @@ class Coupon(models.Model):
     discount = models.FloatField(_("Discount Amount"))
     active = models.BooleanField(_("Active"), default=True)
     expiration_date = models.DateTimeField(_("Expiration Date"), null=True, blank=True)
-    applied_to = models.ManyToManyField(Listing, verbose_name=_("Applied to"), default=Listing.objects.all)
+    applied_to = models.ManyToManyField(Listing, verbose_name=_("Applied to"), default=Listing.objects.all)  # type: ignore
 
     def is_expired(self):
         return self.expiration_date and self.expiration_date < timezone.now()
