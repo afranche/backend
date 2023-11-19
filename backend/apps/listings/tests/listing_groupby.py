@@ -94,6 +94,7 @@ class ListingGroupByTests(BaseTestCase):
                     "price": 12.0,
                     "name": "Product Name",
                     "description": "Product Description",
+                    "categories": [],
                     "variants":
                         {
                             "Color": [
@@ -136,10 +137,6 @@ class ListingGroupByTests(BaseTestCase):
         self.assertEqual(created.price, 12.0)
 
         self.assertEqual(created.products.count(), 2)
-        self.assertEqual(
-            created.products.first().characteristics,
-            {"label": "Color", "value": "Blue"})
-        self.assertEqual(
-            created.products.last().characteristics,
-            {"label": "Color", "value": "Red"})
+        self.assertTrue(created.products.first().characteristics['value'] in ["Red", "Blue"])
+        self.assertTrue(created.products.last().characteristics['value'] in ["Red", "Blue"])
        

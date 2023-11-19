@@ -32,6 +32,12 @@ class ManufacturerSerializer(serializers.ModelSerializer):
         model = Manufacturer
         fields = '__all__'
 
+class AtomicManufacturerSerializer(serializers.ModelSerializer):
+    pictures = ImageModelSerializer(many=True, required=False)
+    class Meta:
+        model = Manufacturer
+        fields = ('id', 'name', 'pictures')
+
 class ProductSerializer(serializers.ModelSerializer):
     images = ImageModelSerializer(many=True, required=False)
     class Meta:
@@ -74,6 +80,7 @@ class BaseListingSerializer(serializers.ModelSerializer):
     def generate_products(self, options):
         products = []
         for option in options:
+            stock = 1
             if 'characteristics' not in option:
                 label = option.pop("label", "input")
                 stock = option.pop('stock', 1)
@@ -201,6 +208,9 @@ class ListingSerializer(BaseListingSerializer):
 
 class ListingGroupByLabelSeriazlizer(BaseListingSerializer):
     variants = serializers.JSONField(required=False)
+    manufacturer = AtomicManufacturerSerializer(required=False)
+    default_image = ImageModelSerializer(required=False)
+
     class Meta:
         model = Listing
         fields = [
@@ -210,7 +220,8 @@ class ListingGroupByLabelSeriazlizer(BaseListingSerializer):
             'description',
             'manufacturer',
             'categories',
-            'variants'
+            'variants',
+            'default_image'
         ]
     
     def to_representation(self, instance):
@@ -223,7 +234,7 @@ class ListingGroupByLabelSeriazlizer(BaseListingSerializer):
                     "name": "Product Name",
                     "description": "Product Description",
                     "default_image": { "id": 1, "image": "http://localhost:8000/media/..."},
-                    "manufacturer": "L'Oréal",
+                    "manufacturer": {"id": 1, "name": "Blurp"},
                     "variants":
                         {
                             "Color": [
