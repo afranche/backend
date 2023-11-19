@@ -138,6 +138,7 @@ REST_FRAMEWORK = {
 }
 
 REST_KNOX = {
+    "AUTO_REFRESH": True,
     "USER_SERIALIZER": "apps.users.serializers.ClientSerializer",
 }
 
