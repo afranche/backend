@@ -140,6 +140,13 @@ class Listing(models.Model):
         return f'{self.name} - Category: {self.categories}'
 
     @property
+    def default_image(self):
+        product = self.products.filter(is_active=True, images__image__isnull=False).first()
+        if product is None:
+            return None
+        return product.images.first()
+
+    @property
     def stock(self):
         return self.products.orders.filter(is_sold=False).count()
 
