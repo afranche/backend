@@ -49,6 +49,7 @@ INSTALLED_APPS = DJANGO_APPS + [
     "corsheaders",
     "rest_framework",
     "knox",
+    "drf_yasg",
     "apps.listings.Config",
     "apps.orders.Config",
     "apps.users.Config",
@@ -204,13 +205,14 @@ R2_BUCKET_CONFIG = {
     },
 }
 AWS_S3_STORAGE_BUCKET_NAME = env.str("R2_BUCKET")
-AWS_S3_SIGNATURE_VERSION="s3v4"
-os.environ.setdefault('S3_USE_SIGV4', 'True')
+AWS_S3_SIGNATURE_VERSION = "s3v4"
+os.environ.setdefault("S3_USE_SIGV4", "True")
 
-STORAGES = {
-    "default": R2_BUCKET_CONFIG,
-    "staticfiles": R2_BUCKET_CONFIG,
-}
+if not DEBUG:
+    STORAGES = {
+        "default": R2_BUCKET_CONFIG,
+        "staticfiles": R2_BUCKET_CONFIG,
+    }
 
 
 CATEGORY_FOLDER_NAME = "categories_cover/"

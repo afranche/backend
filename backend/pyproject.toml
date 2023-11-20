@@ -19,6 +19,7 @@ numpy = "^1.26.1"
 pandas = "^2.1.1"
 django-storages = {extras = ["s3"], version = "^1.14.2"}
 pillow = "^10.1.0"
+drf-yasg = "^1.21.7"
 
 
 [tool.poetry.group.dev.dependencies]
