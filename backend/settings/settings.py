@@ -53,6 +53,7 @@ INSTALLED_APPS = DJANGO_APPS + [
     "apps.listings.Config",
     "apps.orders.Config",
     "apps.users.Config",
+    "apps.payment.Config",
 ]
 
 MIDDLEWARE = [
