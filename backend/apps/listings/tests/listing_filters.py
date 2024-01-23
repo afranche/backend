@@ -33,6 +33,23 @@ class ListingFilteringTests(BaseTestCase):
         data = response.data
         self.assertEqual(response.data['count'], 1)  # Expecting only one listing with the specified name
 
+    def test_filter_with_groupby(self):
+        self.create_legit_listing()
+        params = {'group_by': 'characteristics__label'}
+        filters = {'price': 10.0}
+        response = self.client.get(self.url, filters, params, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['count'], 1)  # Expecting only one listing with price 10.0
+
+        params = {'group_by': 'characteristics__label'}
+        filters = {'name': "Test list"}
+        response = self.client.get(self.url, filters, params, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['count'], 1)
+
+
     def test_filter_by_manufacturer(self):
         self.create_legit_listing()
         filters = {'manufacturer': 'Sample Manu'}

@@ -15,8 +15,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrReadOnly]
     pagination_class = CategoryPagination
 
-    def get_queryset(self):
-        queryset = Category.objects.all()
+    def filter_queryset(self, queryset):
         length = queryset.count()
         filters = self.request.query_params
 
@@ -32,7 +31,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
         if 'description' in filters and isinstance(filters['description'], str):
             queryset = queryset.filter(description__icontains=filters['description'])
 
-        if length != queryset.count() and len(filters) != 0:
+        if length == queryset.count() and any(filters.values()) is False:
             return []
         return queryset
 
@@ -42,8 +41,7 @@ class ListingViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrReadOnly]
     pagination_class = ListingPagination
 
-    def get_queryset(self):
-        queryset = Listing.objects.all()
+    def filter_queryset(self, queryset):
         length = queryset.count()
         filters = self.request.query_params
 
@@ -58,9 +56,10 @@ class ListingViewSet(viewsets.ModelViewSet):
 
         if 'manufacturer' in filters and isinstance(filters['manufacturer'], str):
             queryset = queryset.filter(manufacturer__name__icontains=filters['manufacturer'])
-        if length != queryset.count() and len(filters) != 0:
-            return []
         
+        if length == queryset.count() and any(filters.values()) is False and "group_by" not in filters:
+            return []
+
         return queryset
 
     def get_serializer_class(self):
@@ -81,6 +80,7 @@ class ManufacturerViewSet(viewsets.ModelViewSet):
     queryset = Manufacturer.objects.all()
     serializer_class = ManufacturerSerializer
     permission_classes = [IsAdminOrReadOnly]
+    pagination_class = DefaultPagination
 
 class CouponViewSet(viewsets.ModelViewSet):
     queryset = Coupon.objects.all()
